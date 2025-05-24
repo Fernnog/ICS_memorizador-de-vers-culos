@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Evento Recorrente .ics</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        input[type="text"],
+        textarea,
+        input[type="date"] {
+            width: calc(100% - 22px); /* Adjusted for padding */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .info {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e9f5fd;
+            border-left: 3px solid #3498db;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerador de Evento Semanal Recorrente</h1>
+        
+        <div class="form-group">
+            <label for="eventName">Nome do Evento:</label>
+            <input type="text" id="eventName">
+        </div>
+
+        <div class="form-group">
+            <label for="eventDescription">Observação (Descrição):</label>
+            <textarea id="eventDescription"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="startDate">Data de Início da Primeira Semana (o sistema ajustará para a segunda-feira correspondente):</label>
+            <input type="date" id="startDate">
+        </div>
+
+        <button onclick="generateICS()">Gerar Arquivo .ics</button>
+
+        <div class="info">
+            <p><strong>Como funciona:</strong></p>
+            <ul>
+                <li>O evento será configurado para durar o dia todo, de Segunda a Domingo.</li>
+                <li>Ele se repetirá a cada 3 semanas.</li>
+                <li>Este padrão de repetição (uma semana de evento a cada 3 semanas) ocorrerá 3 vezes no total.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function formatDateToICS(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+
+        function formatDateTimeToICS(date) {
+            const year = date.getUTCFullYear();
+            const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            const day = date.getUTCDate().toString().padStart(2, '0');
+            const hours = date.getUTCHours().toString().padStart(2, '0');
+            const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+            const seconds = date.getUTCSeconds().toString().padStart(2, '0');
+            return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+        }
+
+        // Function to escape special characters for ICS text fields
+        function escapeICStext(text) {
+            if (typeof text !== 'string') return '';
+            // 1. Normalize newlines (CRLF and CR to LF)
+            let s = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            // 2. Escape backslashes first, then other special characters
+            s = s.replace(/\\/g, '\\\\');
+            s = s.replace(/,/g, '\\,');
+            s = s.replace(/;/g, '\\;');
+            s = s.replace(/\n/g, '\\n'); // This creates the literal \n needed by ICS for newlines
+            return s;
+        }
+
+
+        function generateICS() {
+            const eventNameInput = document.getElementById('eventName').value; // Don't trim yet for filename
+            const eventDescriptionInput = document.getElementById('eventDescription').value; // Don't trim yet
+
+            const eventName = escapeICStext(eventNameInput.trim());
+            const eventDescription = escapeICStext(eventDescriptionInput.trim()); // Trim before escaping
+            
+            const startDateInput = document.getElementById('startDate').value;
+
+            if (!eventNameInput.trim()) { // Check original non-escaped, trimmed value for emptiness
+                alert("Por favor, insira o nome do evento.");
+                return;
+            }
+            if (!startDateInput) {
+                alert("Por favor, selecione uma data de início.");
+                return;
+            }
+
+            const userSelectedDate = new Date(startDateInput + 'T00:00:00'); 
+
+            let firstMonday = new Date(userSelectedDate.getTime());
+            // Adjust to find the Monday of the week of the selected date, or the next Monday
+            // 0=Sun, 1=Mon, ..., 6=Sat
+            // If Sunday (0), subtract 6 days to get to previous Monday, then add 7 if we want *next* week's logic.
+            // Or, more simply:
+            let dayOfWeek = firstMonday.getDay(); // 0 for Sunday, 1 for Monday, etc.
+            let offset = 1 - dayOfWeek; // if dayOfWeek is 1 (Mon), offset is 0. If 0 (Sun), offset is 1. If 2 (Tue), offset is -1.
+            if (offset > 0) { // If it's Sunday (offset=1), we want the next day (Monday)
+                 firstMonday.setDate(firstMonday.getDate() + offset);
+            } else if (offset < 0) { // If it's Tue-Sat (offset is negative), add (7 + offset) to get to next Monday
+                 firstMonday.setDate(firstMonday.getDate() + (7 + offset));
+            }
+            // If it's already Monday, no change needed.
+
+            const dtStart = new Date(firstMonday.getTime());
+            const dtEnd = new Date(firstMonday.getTime());
+            dtEnd.setDate(dtEnd.getDate() + 7); 
+
+            const uid = Date.now() + "@meu_gerador_eventos.com"; 
+            const dtStamp = formatDateTimeToICS(new Date());
+
+            const icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//MeuGerador//Evento Semanal//PT',
+                'CALSCALE:GREGORIAN', // Good practice to include
+                'BEGIN:VEVENT',
+                `UID:${uid}`,
+                `DTSTAMP:${dtStamp}`,
+                `DTSTART;VALUE=DATE:${formatDateToICS(dtStart)}`,
+                `DTEND;VALUE=DATE:${formatDateToICS(dtEnd)}`,
+                `SUMMARY:${eventName}`, // Already escaped
+                `DESCRIPTION:${eventDescription}`, // Already escaped
+                'RRULE:FREQ=WEEKLY;INTERVAL=3;COUNT=3', 
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n'); // Use CRLF for line endings in ICS
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            
+            const safeEventName = eventNameInput.trim().replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+            link.download = `${safeEventName || 'evento'}_recorrente.ics`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        window.onload = function() {
+            const today = new Date();
+            let defaultStartDate = new Date(today);
+            const dayOfWeek = defaultStartDate.getDay(); // 0 (Sun) to 6 (Sat)
+            
+            // Calculate days to add to get to the next Monday
+            // If today is Monday (1), add 0 days.
+            // If today is Sunday (0), add 1 day.
+            // If today is Tuesday (2), add 6 days. (1 - 2 + 7) % 7 = 6
+            // If today is Saturday (6), add 2 days. (1 - 6 + 7) % 7 = 2
+            let daysUntilMonday = (1 - dayOfWeek + 7) % 7;
+            
+            defaultStartDate.setDate(defaultStartDate.getDate() + daysUntilMonday);
+
+            document.getElementById('startDate').valueAsDate = defaultStartDate;
+        };
+    </script>
+</body>
+</html>
