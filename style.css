@@ -335,18 +335,37 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     display: inline-block;
 }
 
-/* Badge de Streak (Contador de Dias) */
+/* Badge de Streak Refatorado (Delicado e Integrado) */
 .streak-badge {
     position: absolute; bottom: -8px; right: -8px;
-    background: var(--text); color: var(--bg);
+    background: var(--white); /* Fundo branco/claro */
+    color: var(--accent);     /* Texto na cor de destaque */
     font-size: 0.65rem; font-weight: bold;
     padding: 2px 6px; border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    border: 2px solid var(--bg);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Sombra suave */
+    border: 1px solid var(--accent); /* Borda fina */
     z-index: 10;
     cursor: help;
-    pointer-events: none; /* Deixa clique passar para o botão se sobrepor */
+    pointer-events: none;
 }
+
+/* NOVO: Estilo para o ícone de feedback do plano */
+.plan-indicator {
+    position: absolute;
+    top: -6px; left: -6px; /* Canto superior esquerdo */
+    width: 20px; height: 20px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--primary);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 11;
+    transition: transform 0.2s;
+}
+.plan-indicator:hover { transform: scale(1.1); }
+.plan-indicator svg { width: 12px; height: 12px; } /* Ícone pequeno e discreto */
+
 
 /* Botão de Ritmo Refatorado (Sem SVG ring) */
 .pacing-btn {
