@@ -316,13 +316,77 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 .flashcard-front h2 { color: var(--accent); }
 .cloze-text { font-size: 1.2rem; font-style: italic; opacity: 0.8; }
-.tap-hint { margin-top: auto; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5;}
+
+/* --- IMPLEMENTAÇÃO: ESTILOS DE SOBRECARGA E ÍCONES --- */
+
+/* Alerta de Sobrecarga */
+.overload-alert {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-text);
+    color: var(--warning-text);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    animation: slideUp 0.3s ease;
+}
+.alert-content { display: flex; align-items: center; gap: 8px; }
+.btn-reschedule {
+    background: var(--white);
+    border: 1px solid var(--warning-text);
+    color: var(--warning-text);
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+}
+.btn-reschedule:hover { transform: scale(1.05); background: #fff8e1; }
+
+/* Novo Ícone Delicado do Flashcard */
+.tap-hint-icon {
+    margin-top: auto;
+    color: var(--accent);
+    opacity: 0.6;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    transition: opacity 0.3s;
+}
+.flashcard:hover .tap-hint-icon { opacity: 1; }
+.tap-hint-icon svg {
+    animation: spinSlow 10s linear infinite; /* Rotação super suave */
+}
+
+@keyframes spinSlow { 100% { transform: rotate(360deg); } }
+
+/* Estilo antigo removido. Novo Botão Voltar Profissional */
+.btn-back-list {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    opacity: 0.7;
+    width: auto; /* Não ocupa largura total */
+    margin: 10px auto 0; /* Centralizado */
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 500;
+    justify-content: center;
+}
+.btn-back-list:hover {
+    background: var(--hover-bg);
+    border-color: var(--primary);
+    opacity: 1;
+    color: var(--primary);
+}
 
 .flashcard-back {
     background-color: var(--primary); color: var(--white);
     transform: rotateY(180deg); border-color: var(--primary);
 }
-.btn-back-list { width: 100%; margin-top: 5px; }
 
 
 /* =========================================
