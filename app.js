@@ -6,18 +6,26 @@ let appData = {
 };
 
 window.onload = function() {
+    // --- 0. REGISTRO DO SERVICE WORKER (PWA) ---
+    // Ativa o funcionamento offline e instalação
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('SW registrado com sucesso:', reg.scope))
+            .catch(err => console.error('Falha ao registrar SW:', err));
+    }
+
     initChangelog();
     loadFromStorage();
     
     // Define data de hoje
     const today = new Date();
-    document.getElementById('startDate').valueAsDate = today;
+    const startDateInput = document.getElementById('startDate');
+    if(startDateInput) startDateInput.valueAsDate = today;
     
     // Listeners para o Painel de Previsão (Reatividade - Prioridade 2)
-    const dateInput = document.getElementById('startDate');
     const refInput = document.getElementById('ref');
     
-    if(dateInput) dateInput.addEventListener('change', updatePreviewPanel);
+    if(startDateInput) startDateInput.addEventListener('change', updatePreviewPanel);
     if(refInput) refInput.addEventListener('input', updatePreviewPanel);
 
     // Inicializações de Lógica
@@ -606,5 +614,6 @@ window.openChangelog = function() {
 window.closeChangelog = function() {
     document.getElementById('changelogModal').style.display = 'none';
 };
+
 
 window.updateRadar = updateRadar;
