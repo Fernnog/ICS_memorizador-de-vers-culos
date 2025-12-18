@@ -1,6 +1,17 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.7",
+        date: "2025-12-18",
+        title: "Mobile PWA & Modo Offline",
+        changes: [
+            "📱 <b>Web App Nativo (PWA):</b> Agora você pode instalar o NeuroBible no seu Android/iOS! Adicione à tela inicial para uma experiência de aplicativo completa, sem a barra de endereços do navegador.",
+            "📶 <b>Modo Offline:</b> Vai estudar no metrô ou modo avião? Sem problemas. O sistema agora funciona 100% sem internet graças ao novo Service Worker que armazena o app no seu dispositivo.",
+            "🎨 <b>Identidade Visual:</b> O cabeçalho foi refinado profissionalmente. O logo agora possui uma moldura 'app-icon' elegante e alinhamento otimizado com o título.",
+            "📂 <b>Organização de Assets:</b> Reestruturação interna de pastas de imagem para maior performance e padronização."
+        ]
+    },
+    {
         version: "1.0.6",
         date: "2025-12-18",
         title: "Feedback Imediato & Ajuste SRS",
