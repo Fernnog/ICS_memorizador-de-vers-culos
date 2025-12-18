@@ -35,6 +35,7 @@ Para evitar a leitura passiva, o sistema nunca entrega a resposta de bandeja:
 ### 3. O Radar de Carga Cognitiva (Heatmap Interativo)
 Um mapa visual para planejar sua semana:
 * **Visualização:** Cores indicam a carga do dia (🟢 Leve, 🟡 Moderado, 🔴 Pesado).
+* **Alcance:** O radar projeta os próximos **63 dias (9 semanas)**.
 * **Ação:** O Radar é **clicável**. Ao clicar em um dia, você abre imediatamente o painel de revisão com os Flashcards daquela data.
 
 ---
@@ -43,46 +44,50 @@ Um mapa visual para planejar sua semana:
 
 ### Passo 1: Inserção de Dados
 1.  **Referência:** Digite o local do texto (ex: *João 3:16*).
-2.  **Data de Início:** Escolha quando começar. Observe o Radar para evitar dias vermelhos.
+2.  **Data de Início:** Escolha quando começar.
 3.  **Texto:** Cole o versículo completo. O sistema processará automaticamente as lacunas para o treino.
 
-### Passo 2: Treino e Revisão (Modo Híbrido)
+### Passo 2: Monitoramento e Treino
 
-Você pode revisar de duas formas:
+A interface foi desenhada para foco total. Utilize os ícones no topo:
 
-**A. Via Agenda (Mobile/Desktop)**
-* Clique em **"✅ Confirmar e Gerar Agenda (.ics)"**.
+* **Ícone de Radar (Activity):** Abre o mapa de calor de 63 dias. Se houver um **ponto vermelho** no ícone, significa que há revisões pendentes para hoje.
+* **Ícone de Download:** Faz o backup dos seus dados (`.json`).
+* **Ícone de Upload:** Restaura seus dados de outro dispositivo.
+
+**Para Treinar (Modo Flashcards):**
+1.  Clique no ícone do **Radar**.
+2.  Identifique os dias coloridos.
+3.  Clique no dia desejado para abrir os cartões.
+4.  Use o **Flashcard 3D**: Tente lembrar o texto oculto e clique no cartão para virá-lo e conferir se acertou.
+
+### Passo 3: Integração com Agenda
+* Clique no botão principal **"✅ Confirmar e Gerar Agenda (.ics)"**.
 * Importe o arquivo no seu Google Calendar, Outlook ou Apple Calendar.
-* Nas datas agendadas, abra a notificação e tente completar o texto mentalmente antes de ler a resposta.
-
-**B. Via Navegador (Flashcards)**
-* No **Radar de Carga**, clique em qualquer dia colorido (verde, amarelo ou vermelho).
-* Uma lista de revisões aparecerá. Selecione um versículo.
-* Use o **Flashcard 3D**: Tente lembrar o texto oculto e clique no cartão para virá-lo e conferir se acertou.
-
-### Passo 3: Gestão e Segurança
-* **Backup:** Seus dados são salvos localmente no navegador (LocalStorage). Clique em **"⬇ Backup"** regularmente para baixar um arquivo `.json` de segurança.
-* **Restaurar:** Use o botão de restauração para carregar seus dados em outro computador ou navegador.
+* Nas datas agendadas, você receberá notificações para reforçar o treino fora da aplicação.
 
 ---
 
 ## 🛠️ Ficha Técnica
 
 * **Arquitetura:** Single Page Application (SPA) - Client-side only (Offline-first).
+* **Design System:** * **Minimalismo:** Interface limpa focada em conteúdo.
+    * **Dark Mode:** Suporte automático a temas escuros (`prefers-color-scheme`).
+    * **Ícones:** SVG Vetoriais para máxima nitidez em qualquer tela.
 * **Linguagens:**
     * **HTML5:** Estrutura semântica e Modais interativos.
-    * **CSS3:** Variáveis, Grid Layout, Flexbox e Transformações 3D (`perspective`, `rotateY`) para os cartões.
+    * **CSS3:** Variáveis CSS (`:root`), Grid Layout, Flexbox e Transformações 3D.
     * **JavaScript (ES6+):** Lógica SRS, Regex para geração de lacunas (Cloze Deletion) e manipulação de arquivos Blob.
-* **Privacidade:** Nenhum dado é enviado para servidores externos. Tudo reside na sua máquina.
+* **Privacidade:** Nenhum dado é enviado para servidores externos. Tudo reside na sua máquina (LocalStorage).
 
 ---
 
 ## 📂 Estrutura de Arquivos
 
-* `index.html`: Interface principal, estrutura do Radar e Modais (Changelog e Flashcards).
-* `style.css`: Estilização visual, regras de cores do mapa de calor e animações.
-* `app.js`: O núcleo lógico. Gerencia o banco de dados local, cálculos de datas e geração de arquivos .ics.
-* `changelog.js`: Base de dados do histórico de versões e novidades do sistema.
+* `index.html`: Interface principal, estrutura do novo Header e Modais (Radar, Changelog e Flashcards).
+* `style.css`: Estilização visual, regras de Dark Mode e animações 3D.
+* `app.js`: O núcleo lógico. Gerencia o banco de dados local, cálculos de 63 dias e geração de arquivos .ics.
+* `changelog.js`: Base de dados do histórico de versões.
 * `README.md`: Este manual de documentação.
 
 ---
