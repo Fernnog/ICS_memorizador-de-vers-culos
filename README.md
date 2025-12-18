@@ -4,100 +4,95 @@
 
 O **NeuroBible** é uma aplicação web focada em **Neuroaprendizagem** e **Gestão de Carga Cognitiva**.
 
-Diferente de agendas comuns, ele evoluiu para se tornar um treinador ativo. Além de calcular *quando* revisar (usando Repetição Espaçada - SRS), ele agora gerencia o *como* revisar, utilizando técnicas de **Recuperação Ativa (Active Recall)** e **Flashcards Interativos** para garantir a fixação profunda do conteúdo na memória de longo prazo.
+Diferente de agendas comuns, ele evoluiu para se tornar um treinador ativo. Além de calcular *quando* revisar (usando Repetição Espaçada - SRS), ele gerencia o *como* revisar (Active Recall) e, crucialmente, *quanto* revisar, protegendo o usuário de sobrecargas mentais através de algoritmos inteligentes de redistribuição.
 
 ---
 
 ## 🎯 O Propósito
 
-A memorização de textos longos frequentemente falha por dois motivos principais:
-1.  **Passividade:** Apenas reler o texto cria uma falsa sensação de fluência ("eu já sei isso"), mas não forma conexões neurais fortes.
-2.  **Sobrecarga:** Tentar revisar tudo em um único dia gera estresse cognitivo e abandono.
+A memorização de longo prazo falha quando há **Passividade** (apenas ler) ou **Burnout** (excesso de conteúdo).
 
-O **NeuroBible** resolve isso atuando como um "Personal Trainer" para sua memória, garantindo a intensidade certa, no momento certo.
+O **NeuroBible** resolve isso atuando como um "Personal Trainer" para sua memória:
+1.  **Força a recuperação da memória** (Active Recall).
+2.  **Agenda nos momentos críticos** (Curva de Esquecimento).
+3.  **Previne a exaustão** redistribuindo cargas excessivas automaticamente.
 
 ---
 
 ## ⚙️ Engenharia de Retenção (Neurociência Aplicada)
 
-O sistema opera sobre três pilares científicos:
+O sistema opera sobre quatro pilares científicos:
 
 ### 1. O Algoritmo de Repetição Espaçada (SRS)
-O sistema projeta 7 revisões estratégicas para cada versículo ao longo de 60 dias, baseadas na **Curva de Esquecimento de Ebbinghaus**:
+O sistema projeta 7 revisões estratégicas para cada versículo ao longo de 60 dias:
 * **Intervalos:** 1, 3, 7, 14, 21, 30, 60 dias.
 * **Objetivo:** Interceptar a memória logo antes dela desaparecer, reforçando o traço mnemônico.
 
 ### 2. Recuperação Ativa & Omissão (Cloze Deletion)
 Para evitar a leitura passiva, o sistema nunca entrega a resposta de bandeja:
-* **Na Agenda (.ics):** O evento criado oculta palavras-chave aleatórias (ex: *"O Senhor é o meu _____, nada me ______"*). A resposta completa fica oculta, acessível apenas ao rolar a tela.
-* **No Navegador (Flashcards):** O modo de treino exibe o texto incompleto, forçando seu cérebro a preencher as lacunas antes de virar a carta.
+* **Na Agenda (.ics):** O evento oculta palavras-chave aleatórias.
+* **No Navegador (Flashcards):** Cartões interativos ocultam partes do texto, forçando o cérebro a preencher as lacunas.
 
-### 3. O Radar de Carga Cognitiva (Heatmap Interativo)
-Um mapa visual para planejar sua semana:
-* **Visualização:** Cores indicam a carga do dia (🟢 Leve, 🟡 Moderado, 🔴 Pesado).
-* **Alcance:** O radar projeta os próximos **63 dias (9 semanas)**.
-* **Ação:** O Radar é **clicável**. Ao clicar em um dia, você abre imediatamente o painel de revisão com os Flashcards daquela data.
+### 3. Gestão de Carga & "Válvula de Escape" (Novo v1.0.5)
+O sistema monitora a saúde mental do usuário:
+* **Detecção:** Se um dia acumular mais de 5 revisões, um alerta visual é disparado.
+* **Ação:** Com um clique, o sistema busca automaticamente o próximo dia "Leve" (com pouca carga) na agenda futura e move o excesso para lá, garantindo que o estudo nunca se torne um fardo.
+
+### 4. Ritmo Sustentável (Pacing)
+Para garantir a constância, o usuário define seu ritmo de entrada:
+* **Diário:** Alta intensidade.
+* **Alternado:** Equilíbrio (dia sim, dia não).
+* **Modo Leve:** Foco em meditação e descanso.
 
 ---
 
 ## 🚀 Guia de Uso
 
-### Passo 1: Inserção de Dados
-1.  **Referência:** Digite o local do texto (ex: *João 3:16*).
-2.  **Data de Início:** Escolha quando começar.
-3.  **Texto:** Cole o versículo completo. O sistema processará automaticamente as lacunas para o treino.
-4.  **Previsão Inteligente:** Observe o painel que surge automaticamente, indicando se os dias futuros de revisão estão livres ou sobrecarregados.
+### Passo 1: Inserção & Previsão
+1.  **Dados:** Insira a referência, data e texto.
+2.  **Previsão Inteligente:** Antes de salvar, observe o painel "Previsão de Revisões". Se houver dias com borda vermelha, significa que aquela data futura já está cheia. O sistema avisa antes de acontecer.
 
-### Passo 2: Gestão de Ritmo e Constância
-O sistema possui controles dedicados para evitar burnout:
-* **Seletor de Planos:** Escolha entre **Diário** (Intenso), **Alternado** (Equilibrado) ou **Modo Leve** (Foco em meditação/descanso).
-* **Feedback Visual:** Um pequeno ícone no topo esquerdo do botão de ritmo indica qual modo está ativo no momento.
-* **Controle de Bloqueio:** Se tentar adicionar versículos fora do ritmo escolhido, o botão ficará vermelho (bloqueado) para forçar o descanso necessário à consolidação neural.
-* **Badge de Constância (Streak):** Acompanhe quantos dias seguidos você tem mantido sua disciplina através do contador "🔥" no cabeçalho.
+### Passo 2: Treino Diário (Flashcards)
+Acesse o ícone do **Radar** e clique no dia atual (ou dias passados coloridos).
+* **Interface Imersiva:** Flashcards com design limpo e ícones animados.
+* **Mecânica:**
+    1.  Leia o texto com lacunas ("...").
+    2.  Tente recitar mentalmente.
+    3.  Clique no ícone de rotação para virar o cartão e conferir a resposta.
+* **Sobrecarga:** Se houver muitos itens, use o botão **"Passar para próximo dia leve"** que aparecerá no topo do modal.
 
-### Passo 3: Monitoramento e Treino
+### Passo 3: Gestão de Ritmo
+* **Seletor de Planos:** Clique no ícone de "Configuração/Engrenagem" (no botão de ritmo) para alterar seu modo.
+* **Bloqueio:** Se tentar adicionar versículos rápido demais (fora do ritmo), o botão de confirmação ficará vermelho temporariamente.
+* **Streak:** Acompanhe seu contador "🔥" para manter a disciplina.
 
-A interface foi desenhada para foco total. Utilize os ícones no topo:
-
-* **Ícone de Radar (Activity):** Abre o mapa de calor de 63 dias. Se houver um **ponto vermelho** no ícone, significa que há revisões pendentes para hoje.
-* **Ícone de Download:** Faz o backup dos seus dados (`.json`).
-* **Ícone de Upload:** Restaura seus dados de outro dispositivo.
-
-**Para Treinar (Modo Flashcards):**
-1.  Clique no ícone do **Radar**.
-2.  Identifique os dias coloridos.
-3.  Clique no dia desejado para abrir os cartões.
-4.  Use o **Flashcard 3D**: Tente lembrar o texto oculto e clique no cartão para virá-lo e conferir se acertou.
-
-### Passo 4: Integração com Agenda
-* Clique no botão principal **"✅ Confirmar e Gerar Agenda (.ics)"**.
-* Importe o arquivo no seu Google Calendar, Outlook ou Apple Calendar.
-* Nas datas agendadas, você receberá notificações para reforçar o treino fora da aplicação.
+### Passo 4: Integração Externa (.ics)
+* Clique em **"Confirmar e Gerar Agenda"** para baixar um arquivo de calendário compatível com Google Calendar, Outlook e Apple Calendar.
 
 ---
 
 ## 🛠️ Ficha Técnica
 
 * **Arquitetura:** Single Page Application (SPA) - Client-side only (Offline-first).
+* **Armazenamento:** LocalStorage (Persistência no navegador do usuário).
 * **Design System:**
-    * **Minimalismo:** Interface limpa focada em conteúdo.
-    * **Dark Mode:** Suporte automático a temas escuros (`prefers-color-scheme`).
-    * **Ícones:** SVG Vetoriais para máxima nitidez em qualquer tela (Retina Ready).
-* **Linguagens:**
-    * **HTML5:** Estrutura semântica e Modais interativos.
-    * **CSS3:** Variáveis CSS (`:root`), Grid Layout, Flexbox, Transformações 3D e Animações.
-    * **JavaScript (ES6+):** Lógica SRS, Regex para geração de lacunas (Cloze Deletion) e manipulação de arquivos Blob.
-* **Privacidade:** Nenhum dado é enviado para servidores externos. Tudo reside na sua máquina (LocalStorage).
+    * **Minimalismo:** Interface focada em conteúdo, botões "Ghost" e ícones SVG.
+    * **Dark Mode:** Suporte automático.
+    * **Feedback Visual:** Cores semânticas para carga (Verde/Amarelo/Vermelho) e animações CSS suaves.
+* **Tecnologias:**
+    * HTML5 Semântico.
+    * CSS3 (Grid, Flexbox, Keyframe Animations, Variables).
+    * JavaScript ES6+ (Manipulação de Datas, JSON, Blobs).
 
 ---
 
 ## 📂 Estrutura de Arquivos
 
-* `index.html`: Interface principal, estrutura do Header, Indicadores de Ritmo e Modais.
-* `style.css`: Estilização visual, regras de Dark Mode, animações 3D e design responsivo.
-* `app.js`: O núcleo lógico. Gerencia o banco de dados local, cálculos de SRS, injeção de ícones SVG e geração de arquivos .ics.
-* `changelog.js`: Base de dados do histórico de versões (Log de evolução).
-* `README.md`: Este manual de documentação.
+* `index.html`: Interface principal, estrutura dos Modais (Radar, Review, Planos).
+* `style.css`: Estilização visual, animações 3D dos cartões, regras de Dark Mode.
+* `app.js`: O cérebro do sistema. Contém a lógica SRS, algoritmo de redistribuição de carga, gestão de estado e geração de .ics.
+* `changelog.js`: Registro histórico das versões e melhorias.
+* `README.md`: Documentação oficial.
 
 ---
 
