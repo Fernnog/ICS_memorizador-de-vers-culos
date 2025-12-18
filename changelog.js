@@ -1,6 +1,15 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.6",
+        date: "2025-12-18",
+        title: "Feedback Imediato & Ajuste SRS",
+        changes: [
+            "📍 <b>Dia Zero (Learning Day):</b> O dia em que você adiciona o versículo agora aparece no Radar e na Agenda. Isso confirma visualmente seu plantio.",
+            "🧠 <b>Ciclo Completo:</b> O algoritmo foi ajustado para 8 etapas (0, 1, 3... 60), garantindo contato imediato com o conteúdo."
+        ]
+    },
+    {
         version: "1.0.5",
         date: "2025-12-18",
         title: "Gestão de Sobrecarga & Refino UI",
