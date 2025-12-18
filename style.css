@@ -39,7 +39,27 @@ header {
 }
 h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
 
-.top-controls { display: flex; gap: 10px; }
+.top-controls { display: flex; gap: 10px; align-items: center; }
+
+/* Badge de Versão */
+.version-badge {
+    background: #e8f4f8;
+    color: var(--accent);
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    border: 1px solid #b3d7ef;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    margin-right: 10px;
+    transition: all 0.2s;
+}
+.version-badge:hover { background: #d1e7f5; transform: translateY(-1px); }
+.version-badge span { font-weight: bold; font-size: 0.9rem; }
+.version-badge small { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;}
+
 .btn-small {
     padding: 5px 10px;
     font-size: 0.8rem;
@@ -89,7 +109,7 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 }
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 7 dias */
+    grid-template-columns: repeat(7, 1fr);
     gap: 4px;
 }
 .day-cell {
@@ -107,11 +127,10 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 }
 /* Carga Visual */
 .load-0 { background: #f8f9fa; color: #aaa; }
-.load-low { background: var(--success-bg); color: var(--success-text); } /* 1-2 */
-.load-med { background: var(--warning-bg); color: var(--warning-text); } /* 3-5 */
-.load-high { background: var(--danger-bg); color: var(--danger-text); font-weight: bold; } /* 6+ */
+.load-low { background: var(--success-bg); color: var(--success-text); }
+.load-med { background: var(--warning-bg); color: var(--warning-text); }
+.load-high { background: var(--danger-bg); color: var(--danger-text); font-weight: bold; }
 
-/* Indicador de Preview (O que será adicionado) */
 .is-preview {
     box-shadow: inset 0 0 0 2px var(--accent);
     transform: scale(0.98);
@@ -132,33 +151,17 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 }
 .btn-main:hover { background-color: #2980b9; }
 
-/* Tabela de Histórico */
+/* Histórico */
 .history-section { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th { text-align: left; background: #f8f9fa; padding: 10px; border-bottom: 2px solid #ddd; }
 td { padding: 10px; border-bottom: 1px solid #eee; }
 .delete-btn { color: #e74c3c; cursor: pointer; font-weight: bold; border:none; background:none;}
 
-/* Badge de Versão */
-.version-badge {
-    background: #e8f4f8;
-    color: var(--accent);
-    padding: 5px 12px;
-    border-radius: 20px;
-    cursor: pointer;
-    border: 1px solid #b3d7ef;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1;
-    margin-right: 10px;
-    transition: all 0.2s;
-}
-.version-badge:hover { background: #d1e7f5; transform: translateY(-1px); }
-.version-badge span { font-weight: bold; font-size: 0.9rem; }
-.version-badge small { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;}
+.legend { display: flex; gap: 15px; font-size: 0.8rem; margin-top: 10px; justify-content: flex-end;}
+.dot { width: 10px; height: 10px; display: inline-block; border-radius: 50%; margin-right: 5px; }
 
-/* Modal Styles */
+/* --- MODAIS GERAIS --- */
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.5);
@@ -179,13 +182,59 @@ td { padding: 10px; border-bottom: 1px solid #eee; }
 .close-modal {
     background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999;
 }
+
+/* Modal Changelog */
 .changelog-list { overflow-y: auto; padding-right: 5px; }
 .changelog-item { margin-bottom: 20px; border-left: 3px solid var(--accent); padding-left: 15px; }
 .changelog-date { font-size: 0.75rem; color: #888; }
 .changelog-title { font-weight: bold; margin-bottom: 5px; display: block; color: var(--primary); }
 .changelog-ul { padding-left: 20px; margin: 5px 0; font-size: 0.9rem; color: #555; }
 
+/* --- MODAL FLASHCARDS --- */
+.instruction-text { color: #666; margin-bottom: 10px; }
+.verse-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.verse-item {
+    background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between;
+    align-items: center;
+}
+.verse-item:hover { background: #e2e6ea; transform: translateX(5px); border-color: var(--accent); }
+.verse-item strong { color: var(--primary); }
 
-/* Legenda */
-.legend { display: flex; gap: 15px; font-size: 0.8rem; margin-top: 10px; justify-content: flex-end;}
-.dot { width: 10px; height: 10px; display: inline-block; border-radius: 50%; margin-right: 5px; }
+/* Flashcard 3D */
+.flashcard {
+    background-color: transparent;
+    width: 100%; height: 320px;
+    perspective: 1000px;
+    cursor: pointer; margin-bottom: 15px;
+}
+.flashcard-inner {
+    position: relative; width: 100%; height: 100%;
+    text-align: center; transition: transform 0.6s;
+    transform-style: preserve-3d;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 12px;
+}
+.flashcard-inner.is-flipped { transform: rotateY(180deg); }
+
+.flashcard-front, .flashcard-back {
+    position: absolute; width: 100%; height: 100%;
+    -webkit-backface-visibility: hidden; backface-visibility: hidden;
+    padding: 30px; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    border-radius: 12px; border: 2px solid #eee; background-color: var(--white);
+    overflow-y: auto; /* Para textos longos */
+}
+
+/* Frente (Pergunta/Lacuna) */
+.flashcard-front h2 { margin-top: 0; color: var(--accent); }
+.cloze-text { font-size: 1.15rem; line-height: 1.6; color: #555; font-style: italic; }
+.tap-hint { margin-top: auto; font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; padding-top: 15px;}
+
+/* Verso (Resposta) */
+.flashcard-back { background-color: var(--primary); color: white; transform: rotateY(180deg); border-color: var(--primary); }
+.flashcard-back small { color: #bdc3c7; margin-bottom: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; }
+.flashcard-back p { font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap; }
+
+.btn-back-list { width: 100%; margin-top: 5px; }
+    
