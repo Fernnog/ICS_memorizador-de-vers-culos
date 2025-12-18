@@ -1,14 +1,13 @@
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
-    verses: [] // Lista de objetos: { id, ref, text, startDate, dates: [] }
+    verses: [] // { id, ref, text, startDate, dates: [] }
 };
 
-// Inicialização
 window.onload = function() {
-    initChangelog(); // Inicializa o versionamento
+    initChangelog();
     loadFromStorage();
     
-    // Define data de hoje no input se estiver vazio
+    // Define data de hoje
     const today = new Date();
     document.getElementById('startDate').valueAsDate = today;
     
@@ -31,8 +30,7 @@ function loadFromStorage() {
 // --- 2. LÓGICA DE NEUROAPRENDIZAGEM (SRS) ---
 function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
-    
-    // Estratégia Padrão: 1, 3, 7, 14, 21, 30, 60 dias
+    // 1, 3, 7, 14, 21, 30, 60 dias
     const intervals = [1, 3, 7, 14, 21, 30, 60];
     const dates = [];
     const start = new Date(startDateStr + 'T00:00:00'); 
@@ -49,7 +47,7 @@ function formatDateISOSimple(date) {
     return date.toISOString().split('T')[0];
 }
 
-// --- 3. LÓGICA DO RADAR (Heatmap) ---
+// --- 3. LÓGICA DO RADAR & INTERATIVIDADE ---
 function updateRadar() {
     const grid = document.getElementById('calendarGrid');
     grid.innerHTML = '';
@@ -59,14 +57,14 @@ function updateRadar() {
 
     const loadMap = {};
 
-    // A. Somar Carga do Histórico
+    // A. Somar Carga Histórica
     appData.verses.forEach(v => {
         v.dates.forEach(d => {
             loadMap[d] = (loadMap[d] || 0) + 1;
         });
     });
 
-    // B. Somar Carga do Preview
+    // B. Somar Carga Preview
     const isPreviewActive = document.getElementById('ref').value.trim() !== "";
     if (isPreviewActive) {
         currentPreviewDates.forEach(d => {
@@ -74,7 +72,7 @@ function updateRadar() {
         });
     }
 
-    // C. Renderizar próximos 42 dias
+    // C. Renderizar 42 dias
     const today = new Date();
     for (let i = 0; i < 42; i++) {
         const d = new Date(today);
@@ -84,6 +82,13 @@ function updateRadar() {
 
         const cell = document.createElement('div');
         cell.className = 'day-cell';
+        
+        // INTERATIVIDADE DO FLASHCARD
+        if (count > 0) {
+            cell.style.cursor = 'pointer';
+            cell.onclick = () => openDailyReview(dateStr);
+            cell.title = "Clique para treinar os versículos deste dia";
+        }
         
         if (count === 0) cell.classList.add('load-0');
         else if (count <= 2) cell.classList.add('load-low');
@@ -100,33 +105,31 @@ function updateRadar() {
     }
 }
 
-// --- 4. AÇÃO PRINCIPAL E INTEGRAÇÃO NEUROCIÊNCIA ---
-
-// Algoritmo de Omissão (Cloze Deletion) para Recuperação Ativa
+// --- 4. FUNÇÕES NEURO (Active Recall) ---
 function generateClozeText(text) {
     const words = text.split(' ');
-    // Oculta aleatoriamente palavras com mais de 3 letras (~40% de chance)
+    // Oculta aleatoriamente palavras com >3 letras (~40% chance)
     return words.map(word => {
         const cleanWord = word.replace(/[.,;!?]/g, '');
         if (cleanWord.length > 3 && Math.random() > 0.6) {
-            return "______"; // Lacuna visual
+            return "______"; 
         }
         return word;
     }).join(' ');
 }
 
+// --- 5. AÇÃO PRINCIPAL E ICS ---
 window.processAndGenerate = function() {
     const ref = document.getElementById('ref').value.trim();
     const text = document.getElementById('text').value.trim();
     const startDate = document.getElementById('startDate').value;
 
     if (!ref || !startDate) {
-        alert("Por favor, preencha a Referência e a Data de Início.");
+        alert("Preencha Referência e Data.");
         return;
     }
 
     const reviewDates = calculateSRSDates(startDate);
-
     const newVerse = {
         id: Date.now(),
         ref: ref,
@@ -139,16 +142,14 @@ window.processAndGenerate = function() {
     updateTable();
     updateRadar();
 
-    // Gera o ICS com a nova lógica de Recuperação Ativa
     generateICSFile(newVerse, reviewDates);
 
     document.getElementById('ref').value = '';
     document.getElementById('text').value = '';
-    alert(`Versículo "${ref}" adicionado! O arquivo da agenda foi gerado com exercícios de memorização.`);
+    alert(`"${ref}" agendado com sucesso!`);
     updateRadar();
 };
 
-// --- 5. GERAÇÃO DE ICS (Com Active Recall) ---
 function generateICSFile(verseData, dates) {
     const uidBase = verseData.id;
     const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -160,19 +161,12 @@ function generateICSFile(verseData, dates) {
         'CALSCALE:GREGORIAN'
     ].join('\r\n');
 
-    // 1. Gera texto com lacunas
     const clozeText = generateClozeText(verseData.text);
-    
-    // 2. Cria descrição com separação visual (Forçar Scroll)
-    // O uso de \n aqui será convertido para \\n pelo escapeICS, criando quebras reais na agenda
     const rawDescription = 
-        `🧠 DESAFIO DE MEMÓRIA (Recuperação Ativa)\n` +
-        `Tente completar as lacunas mentalmente:\n\n` +
-        `"${clozeText}"\n\n` +
-        `.\n.\n.\n.\n.\n.\n.\n.\n` + 
-        `👇 Role para ver a resposta\n.\n.\n.\n.\n` + 
-        `📖 RESPOSTA ORIGINAL:\n${verseData.text}`;
-
+        `🧠 DESAFIO (Recuperação Ativa)\nComplete mentalmente:\n\n"${clozeText}"\n\n` +
+        `.\n.\n.\n.\n👇 Role para a resposta\n.\n.\n.\n` + 
+        `📖 RESPOSTA:\n${verseData.text}`;
+    
     const description = escapeICS(rawDescription);
 
     dates.forEach((dateStr, index) => {
@@ -211,13 +205,71 @@ function generateICSFile(verseData, dates) {
 
 function escapeICS(str) {
     if (!str) return '';
-    return str.replace(/\\/g, '\\\\')
-              .replace(/;/g, '\\;')
-              .replace(/,/g, '\\,')
-              .replace(/\n/g, '\\n');
+    return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 }
 
-// --- 6. FUNÇÕES AUXILIARES, UI e CHANGELOG ---
+// --- 6. SISTEMA DE FLASHCARDS / REVIEW ---
+function openDailyReview(dateStr) {
+    // Busca versos que caem nesta data
+    const versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
+    
+    if (versesToReview.length === 0) return;
+
+    const modal = document.getElementById('reviewModal');
+    const listContainer = document.getElementById('reviewList');
+    const title = document.getElementById('reviewTitle');
+    
+    // UI Reset
+    document.getElementById('reviewListContainer').style.display = 'block';
+    document.getElementById('flashcardContainer').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+    
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    title.innerText = `Revisão: ${dateObj.toLocaleDateString('pt-BR')}`;
+
+    listContainer.innerHTML = versesToReview.map(v => `
+        <div class="verse-item" onclick="startFlashcard(${v.id})">
+            <strong>${v.ref}</strong>
+            <span>▶ Treinar</span>
+        </div>
+    `).join('');
+
+    modal.style.display = 'flex';
+}
+
+function startFlashcard(verseId) {
+    const verse = appData.verses.find(v => v.id === verseId);
+    if (!verse) return;
+
+    // Troca para visualização do Card
+    document.getElementById('reviewListContainer').style.display = 'none';
+    document.getElementById('flashcardContainer').style.display = 'block';
+    
+    document.getElementById('cardRef').innerText = verse.ref;
+    
+    // Usa a mesma lógica de omissão, mas adaptando quebras de linha para HTML
+    const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
+    document.getElementById('cardCloze').innerHTML = `"${clozeHTML}"`;
+    
+    document.getElementById('cardFullText').innerText = verse.text;
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+}
+
+window.flipCard = function() {
+    document.getElementById('flashcardInner').classList.toggle('is-flipped');
+};
+
+window.backToList = function() {
+    document.getElementById('reviewListContainer').style.display = 'block';
+    document.getElementById('flashcardContainer').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+};
+
+window.closeReview = function() {
+    document.getElementById('reviewModal').style.display = 'none';
+};
+
+// --- 7. CHANGELOG & UTILITÁRIOS ---
 function updateTable() {
     const tbody = document.querySelector('#historyTable tbody');
     document.getElementById('countDisplay').innerText = appData.verses.length;
@@ -235,7 +287,7 @@ function updateTable() {
 }
 
 window.deleteVerse = function(id) {
-    if(confirm('Remover este versículo do histórico de carga?')) {
+    if(confirm('Remover este versículo?')) {
         appData.verses = appData.verses.filter(v => v.id !== id);
         saveToStorage();
         updateTable();
@@ -244,7 +296,7 @@ window.deleteVerse = function(id) {
 };
 
 window.clearData = function() {
-    if(confirm('ATENÇÃO: Isso apagará todo seu histórico. Continuar?')) {
+    if(confirm('Limpar TUDO?')) {
         appData.verses = [];
         saveToStorage();
         updateTable();
@@ -253,8 +305,7 @@ window.clearData = function() {
 };
 
 window.exportData = function() {
-    const dataStr = JSON.stringify(appData, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `backup_neurobible_${new Date().toISOString().slice(0,10)}.json`;
@@ -267,24 +318,17 @@ window.importData = function(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const loaded = JSON.parse(e.target.result);
-            if (loaded.verses) {
-                appData = loaded;
-                saveToStorage();
-                updateTable();
-                updateRadar();
-                alert("Backup restaurado com sucesso!");
-            }
-        } catch (err) {
-            alert("Erro ao ler arquivo. Verifique se é um backup válido.");
-        }
+            appData = JSON.parse(e.target.result);
+            saveToStorage();
+            updateTable();
+            updateRadar();
+            alert("Restaurado!");
+        } catch (err) { alert("Erro no arquivo."); }
     };
     reader.readAsText(file);
 };
 
-// UI: Changelog
 function initChangelog() {
-    // Pega a versão mais recente do arquivo changelog.js
     const latest = window.neuroChangelog ? window.neuroChangelog[0] : { version: '0.0.0' };
     document.getElementById('currentVersion').innerText = `v${latest.version}`;
 }
@@ -292,19 +336,15 @@ function initChangelog() {
 window.openChangelog = function() {
     const modal = document.getElementById('changelogModal');
     const body = document.getElementById('changelogBody');
-    
     if (!window.neuroChangelog) return;
 
     body.innerHTML = window.neuroChangelog.map(log => `
         <div class="changelog-item">
             <span class="changelog-date">${log.date}</span>
             <span class="changelog-title">v${log.version} - ${log.title}</span>
-            <ul class="changelog-ul">
-                ${log.changes.map(c => `<li>${c}</li>`).join('')}
-            </ul>
+            <ul class="changelog-ul">${log.changes.map(c => `<li>${c}</li>`).join('')}</ul>
         </div>
     `).join('');
-    
     modal.style.display = 'flex';
 };
 
@@ -312,5 +352,5 @@ window.closeChangelog = function() {
     document.getElementById('changelogModal').style.display = 'none';
 };
 
-// Expor updateRadar para o HTML
 window.updateRadar = updateRadar;
+                
