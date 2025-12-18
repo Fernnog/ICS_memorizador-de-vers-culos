@@ -49,8 +49,11 @@ function loadFromStorage() {
 // --- 2. LÓGICA DE NEUROAPRENDIZAGEM (SRS) ---
 function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
-    // 1, 3, 7, 14, 21, 30, 60 dias
-    const intervals = [1, 3, 7, 14, 21, 30, 60];
+    
+    // ATUALIZAÇÃO v1.0.6: Inclusão do índice '0' para considerar o dia atual (Aprendizado)
+    // Sequência: Hoje, Amanhã, 3 dias, 7 dias, etc.
+    const intervals = [0, 1, 3, 7, 14, 21, 30, 60];
+    
     const dates = [];
     const start = new Date(startDateStr + 'T00:00:00'); 
 
