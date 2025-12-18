@@ -1,6 +1,16 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.3",
+        date: "2025-12-18",
+        title: "Previsão Inteligente & Refinamento UI",
+        changes: [
+            "🔮 <b>Painel de Previsão:</b> Chega de adivinhar! Agora, ao digitar a data e referência, você vê instantaneamente quais dias futuros receberão as revisões.",
+            "🚨 <b>Alerta de Sobrecarga:</b> O sistema agora detecta dias congestionados no futuro. Se uma data de revisão cair em um dia 'cheio' (borda vermelha), você saberá antes de confirmar.",
+            "🎨 <b>UI Minimalista:</b> O botão de 'Ritmo' foi simplificado (borda verde/vermelha) para reduzir ruído visual, e os ícones de ação foram modernizados."
+        ]
+    },
+    {
         version: "1.0.2",
         date: "2025-12-18",
         title: "Redesign Visual & Radar Expandido",
