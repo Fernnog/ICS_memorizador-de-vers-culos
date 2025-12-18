@@ -1,6 +1,17 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.2",
+        date: "2025-12-18",
+        title: "Redesign Visual & Radar Expandido",
+        changes: [
+            "🎨 <b>Visual Profissional:</b> Interface totalmente redesenhada. Substituímos botões de texto por ícones SVG minimalistas e limpamos a poluição visual.",
+            "📡 <b>Radar de 63 Dias:</b> O mapa de calor agora tem sua própria janela (Modal) e exibe 9 semanas completas, cobrindo todo o ciclo do SRS.",
+            "🌘 <b>Dark Mode Automático:</b> O sistema agora respeita a preferência de cor do seu sistema operacional (Claro/Escuro).",
+            "🔔 <b>Notificações Inteligentes:</b> O ícone do Radar exibe um ponto de alerta vermelho caso a carga de revisões de hoje esteja alta."
+        ]
+    },
+    {
         version: "1.0.1",
         date: "2025-12-18",
         title: "Flashcards Integrados ao Radar",
