@@ -12,7 +12,7 @@ window.onload = function() {
     document.getElementById('startDate').valueAsDate = today;
     
     updateTable();
-    updateRadar();
+    updateRadar(); // Calcula carga e notificações ao iniciar
 };
 
 function saveToStorage() {
@@ -50,11 +50,12 @@ function formatDateISOSimple(date) {
 // --- 3. LÓGICA DO RADAR & INTERATIVIDADE ---
 function updateRadar() {
     const grid = document.getElementById('calendarGrid');
+    if (!grid) return;
+    
     grid.innerHTML = '';
 
     const startDateInput = document.getElementById('startDate').value;
     const currentPreviewDates = calculateSRSDates(startDateInput);
-
     const loadMap = {};
 
     // A. Somar Carga Histórica
@@ -72,9 +73,23 @@ function updateRadar() {
         });
     }
 
-    // C. Renderizar 42 dias
+    // C. Verificação de Carga de HOJE para Notificação no Botão
     const today = new Date();
-    for (let i = 0; i < 42; i++) {
+    const todayStr = formatDateISOSimple(today);
+    const todayLoad = loadMap[todayStr] || 0;
+    
+    const radarBtn = document.getElementById('btnRadar');
+    if (todayLoad > 0) {
+        radarBtn.classList.add('has-alert');
+        // Define tooltip dinâmico
+        radarBtn.title = `Atenção: ${todayLoad} revisões para hoje!`;
+    } else {
+        radarBtn.classList.remove('has-alert');
+        radarBtn.title = "Abrir Radar de Carga (63 dias)";
+    }
+
+    // D. Renderizar 63 dias (9 semanas completas)
+    for (let i = 0; i < 63; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() + i);
         const dateStr = formatDateISOSimple(d);
@@ -86,8 +101,11 @@ function updateRadar() {
         // INTERATIVIDADE DO FLASHCARD
         if (count > 0) {
             cell.style.cursor = 'pointer';
-            cell.onclick = () => openDailyReview(dateStr);
-            cell.title = "Clique para treinar os versículos deste dia";
+            cell.onclick = () => {
+                closeRadarModal(); // Fecha o radar para focar na revisão
+                openDailyReview(dateStr);
+            };
+            cell.title = `${count} versículos para revisar`;
         }
         
         if (count === 0) cell.classList.add('load-0');
@@ -99,16 +117,25 @@ function updateRadar() {
             cell.classList.add('is-preview');
         }
 
-        const dayLabel = `${d.getDate()}/${d.getMonth()+1}`;
-        cell.innerHTML = `<span>${dayLabel}</span><strong>${count > 0 ? count : '-'}</strong>`;
+        const dayLabel = d.getDate().toString().padStart(2, '0');
+        cell.innerHTML = `<span>${dayLabel}</span><strong>${count > 0 ? count : ''}</strong>`;
         grid.appendChild(cell);
     }
+}
+
+// --- CONTROLE DOS MODAIS NOVOS ---
+function openRadarModal() {
+    updateRadar();
+    document.getElementById('radarModal').style.display = 'flex';
+}
+
+function closeRadarModal() {
+    document.getElementById('radarModal').style.display = 'none';
 }
 
 // --- 4. FUNÇÕES NEURO (Active Recall) ---
 function generateClozeText(text) {
     const words = text.split(' ');
-    // Oculta aleatoriamente palavras com >3 letras (~40% chance)
     return words.map(word => {
         const cleanWord = word.replace(/[.,;!?]/g, '');
         if (cleanWord.length > 3 && Math.random() > 0.6) {
@@ -210,7 +237,6 @@ function escapeICS(str) {
 
 // --- 6. SISTEMA DE FLASHCARDS / REVIEW ---
 function openDailyReview(dateStr) {
-    // Busca versos que caem nesta data
     const versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
     
     if (versesToReview.length === 0) return;
@@ -219,7 +245,6 @@ function openDailyReview(dateStr) {
     const listContainer = document.getElementById('reviewList');
     const title = document.getElementById('reviewTitle');
     
-    // UI Reset
     document.getElementById('reviewListContainer').style.display = 'block';
     document.getElementById('flashcardContainer').style.display = 'none';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
@@ -241,13 +266,11 @@ function startFlashcard(verseId) {
     const verse = appData.verses.find(v => v.id === verseId);
     if (!verse) return;
 
-    // Troca para visualização do Card
     document.getElementById('reviewListContainer').style.display = 'none';
     document.getElementById('flashcardContainer').style.display = 'block';
     
     document.getElementById('cardRef').innerText = verse.ref;
     
-    // Usa a mesma lógica de omissão, mas adaptando quebras de linha para HTML
     const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
     document.getElementById('cardCloze').innerHTML = `"${clozeHTML}"`;
     
@@ -353,4 +376,4 @@ window.closeChangelog = function() {
 };
 
 window.updateRadar = updateRadar;
-                
+        
