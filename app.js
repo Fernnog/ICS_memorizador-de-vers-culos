@@ -1,6 +1,8 @@
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
-    verses: [] // { id, ref, text, startDate, dates: [] }
+    verses: [], // { id, ref, text, startDate, dates: [] }
+    settings: { planInterval: 1 }, // 1=Diário, 2=Alternado, 3=Zen
+    stats: { streak: 0, lastLogin: null } // Controle de Constância
 };
 
 window.onload = function() {
@@ -11,19 +13,29 @@ window.onload = function() {
     const today = new Date();
     document.getElementById('startDate').valueAsDate = today;
     
+    // Inicializações de Lógica
+    checkStreak();      // NOVO: Verifica dias seguidos
     updateTable();
-    updateRadar(); // Calcula carga e notificações ao iniciar
+    updateRadar();      // Calcula carga
+    updatePacingUI();   // NOVO: Atualiza estado do botão de ritmo
 };
 
 function saveToStorage() {
     localStorage.setItem('neuroBibleData', JSON.stringify(appData));
-    updateRadar();
+    updateRadar(); // Mantém o radar sincronizado
 }
 
 function loadFromStorage() {
     const data = localStorage.getItem('neuroBibleData');
     if (data) {
-        appData = JSON.parse(data);
+        const parsed = JSON.parse(data);
+        // Merge para garantir que usuários antigos recebam os novos campos
+        appData = { 
+            ...appData, 
+            ...parsed,
+            settings: parsed.settings || { planInterval: 1 },
+            stats: parsed.stats || { streak: 0, lastLogin: null }
+        };
     }
 }
 
@@ -81,7 +93,6 @@ function updateRadar() {
     const radarBtn = document.getElementById('btnRadar');
     if (todayLoad > 0) {
         radarBtn.classList.add('has-alert');
-        // Define tooltip dinâmico
         radarBtn.title = `Atenção: ${todayLoad} revisões para hoje!`;
     } else {
         radarBtn.classList.remove('has-alert');
@@ -123,7 +134,129 @@ function updateRadar() {
     }
 }
 
-// --- CONTROLE DOS MODAIS NOVOS ---
+// --- NOVAS FUNÇÕES: PACING & STREAK ---
+
+function checkStreak() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Garante inicialização se falhar no load
+    if (!appData.stats) appData.stats = { streak: 0, lastLogin: null };
+    
+    const lastLogin = appData.stats.lastLogin;
+    
+    // Se é o primeiro acesso do dia
+    if (lastLogin !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastLogin === yesterdayStr) {
+            // Entrou ontem e hoje: Aumenta streak
+            appData.stats.streak++;
+        } else {
+            // Quebrou a sequência ou primeiro acesso (inicia/reinicia em 1)
+            appData.stats.streak = 1;
+        }
+        
+        appData.stats.lastLogin = today;
+        saveToStorage();
+    }
+    
+    // Atualiza visual
+    const badge = document.getElementById('streakBadge');
+    if(badge) badge.innerText = `🔥 ${appData.stats.streak}`;
+}
+
+function updatePacingUI() {
+    const btn = document.getElementById('btnPacing');
+    if(!btn) return;
+    
+    const circle = btn.querySelector('.progress-ring__circle');
+    const interval = appData.settings?.planInterval || 1;
+
+    // Achar data do último verso inserido
+    let lastDate = null;
+    if (appData.verses.length > 0) {
+        const sorted = [...appData.verses].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
+        lastDate = new Date(sorted[0].startDate + 'T00:00:00');
+    }
+
+    // Atualiza label do modal
+    const labels = { 1: "Diário", 2: "Alternado", 3: "Bíblico/Zen" };
+    const labelEl = document.getElementById('currentPlanLabel');
+    if(labelEl) labelEl.innerText = labels[interval] || "Personalizado";
+
+    // Se não há versículos, está liberado
+    if (!lastDate) {
+        setPacingState(btn, circle, 'ready', 0);
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const diffTime = Math.abs(today - lastDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays >= interval) {
+        // Liberado
+        setPacingState(btn, circle, 'ready', 0);
+        btn.title = "Novo versículo liberado! O tempo de plantar chegou.";
+    } else {
+        // Bloqueado
+        const remaining = interval - diffDays;
+        const percent = diffDays / interval;
+        const circumference = 113; // 2 * PI * 18
+        const offset = circumference - (percent * circumference); 
+        
+        setPacingState(btn, circle, 'blocked', offset);
+        btn.title = `Aguarde ${remaining} dia(s). O descanso faz parte do plano.`;
+    }
+}
+
+function setPacingState(btn, circle, state, offset) {
+    btn.classList.remove('is-ready', 'is-blocked');
+    btn.classList.add(`is-${state}`);
+    if(circle) circle.style.strokeDashoffset = offset;
+}
+
+// --- UTILITÁRIOS: MODAIS & TOAST ---
+
+window.openPlanModal = function() { 
+    document.getElementById('planModal').style.display = 'flex'; 
+    updatePacingUI(); 
+};
+
+window.closePlanModal = function() { 
+    document.getElementById('planModal').style.display = 'none'; 
+};
+
+window.selectPlan = function(days) {
+    if(!appData.settings) appData.settings = {};
+    appData.settings.planInterval = days;
+    saveToStorage();
+    updatePacingUI();
+    closePlanModal();
+    showToast(`Plano atualizado. Respeite seu novo ritmo!`, 'success');
+};
+
+window.showToast = function(msg, type = 'success') {
+    const box = document.getElementById('toastBox');
+    if(!box) return;
+    
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = type === 'warning' ? `✋ ${msg}` : (type === 'error' ? `🛑 ${msg}` : `✅ ${msg}`);
+    
+    box.appendChild(el);
+    
+    // Remove após 4 segundos
+    setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+    }, 4000);
+};
+
+// --- CONTROLE DOS MODAIS EXISTENTES ---
 function openRadarModal() {
     updateRadar();
     document.getElementById('radarModal').style.display = 'flex';
@@ -145,14 +278,27 @@ function generateClozeText(text) {
     }).join(' ');
 }
 
-// --- 5. AÇÃO PRINCIPAL E ICS ---
+// --- 5. AÇÃO PRINCIPAL E ICS (MODIFICADA) ---
 window.processAndGenerate = function() {
+    // 1. Verificação de Bloqueio de Ritmo (NOVO)
+    const btn = document.getElementById('btnPacing');
+    if (btn && btn.classList.contains('is-blocked')) {
+        // Efeito visual de negação
+        btn.style.transform = "scale(1.1)";
+        setTimeout(() => btn.style.transform = "scale(1)", 200);
+        
+        // Mensagem Personalizada com Princípio Bíblico
+        const interval = appData.settings?.planInterval || 1;
+        showToast(`O descanso é um princípio bíblico. Aguarde o ciclo (${interval} dias) para evitar sobrecarga.`, 'warning');
+        return; // ABORTA A INSERÇÃO
+    }
+
     const ref = document.getElementById('ref').value.trim();
     const text = document.getElementById('text').value.trim();
     const startDate = document.getElementById('startDate').value;
 
     if (!ref || !startDate) {
-        alert("Preencha Referência e Data.");
+        showToast("Preencha Referência e Data.", "error");
         return;
     }
 
@@ -168,13 +314,14 @@ window.processAndGenerate = function() {
     saveToStorage();
     updateTable();
     updateRadar();
+    updatePacingUI(); // Atualiza bloqueio imediatamente após inserir
 
     generateICSFile(newVerse, reviewDates);
 
     document.getElementById('ref').value = '';
     document.getElementById('text').value = '';
-    alert(`"${ref}" agendado com sucesso!`);
-    updateRadar();
+    
+    showToast(`"${ref}" agendado com sucesso!`, 'success');
 };
 
 function generateICSFile(verseData, dates) {
@@ -315,15 +462,20 @@ window.deleteVerse = function(id) {
         saveToStorage();
         updateTable();
         updateRadar();
+        updatePacingUI(); // Atualiza UI caso o último verso seja apagado
     }
 };
 
 window.clearData = function() {
-    if(confirm('Limpar TUDO?')) {
+    if(confirm('Limpar TUDO? (Isso resetará seus planos e streaks)')) {
         appData.verses = [];
+        appData.settings = { planInterval: 1 };
+        appData.stats = { streak: 0, lastLogin: null };
         saveToStorage();
         updateTable();
         updateRadar();
+        updatePacingUI();
+        checkStreak(); // Reseta visual do streak
     }
 };
 
@@ -341,19 +493,28 @@ window.importData = function(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            appData = JSON.parse(e.target.result);
+            const parsed = JSON.parse(e.target.result);
+            appData = { 
+                ...appData, // Mantém defaults
+                ...parsed // Sobrescreve com dados do arquivo
+            };
             saveToStorage();
             updateTable();
             updateRadar();
-            alert("Restaurado!");
-        } catch (err) { alert("Erro no arquivo."); }
+            updatePacingUI();
+            checkStreak();
+            showToast("Backup restaurado com sucesso!", "success");
+        } catch (err) { 
+            showToast("Erro ao ler arquivo de backup.", "error"); 
+        }
     };
     reader.readAsText(file);
 };
 
 function initChangelog() {
     const latest = window.neuroChangelog ? window.neuroChangelog[0] : { version: '0.0.0' };
-    document.getElementById('currentVersion').innerText = `v${latest.version}`;
+    const versionEl = document.getElementById('currentVersion');
+    if(versionEl) versionEl.innerText = `v${latest.version}`;
 }
 
 window.openChangelog = function() {
@@ -376,4 +537,3 @@ window.closeChangelog = function() {
 };
 
 window.updateRadar = updateRadar;
-        
