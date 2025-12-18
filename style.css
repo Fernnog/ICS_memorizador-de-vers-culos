@@ -58,8 +58,42 @@ header {
     border-bottom: 1px solid var(--border);
     padding-bottom: 20px;
 }
-.brand-area h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
-.brand-area small { color: var(--accent); font-weight: 500; }
+
+/* Header Brand Refatorado - Logo com Moldura */
+.brand-area {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Espaço entre logo e texto */
+}
+
+.logo-frame {
+    width: 54px;
+    height: 54px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px; /* Borda suave */
+    padding: 4px; /* Espaço interno da moldura */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* Impede que o logo encolha em telas pequenas */
+}
+
+.logo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-area h1 { margin: 0; font-size: 1.5rem; color: var(--primary); line-height: 1.1; }
+.brand-area small { color: var(--accent); font-weight: 500; font-size: 0.85rem; }
 
 .top-controls { display: flex; gap: 10px; align-items: center; }
 
@@ -141,7 +175,7 @@ input, textarea {
 input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 
-/* --- NOVO: PAINEL DE PREVISÃO (PRIORIDADE 1 e 3) --- */
+/* --- PAINEL DE PREVISÃO --- */
 .preview-panel {
     margin-bottom: 20px;
     animation: slideUp 0.3s ease;
@@ -160,7 +194,7 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     transition: all 0.2s;
     cursor: default;
 }
-/* Alerta de Sobrecarga no Chip (Prioridade 3) */
+/* Alerta de Sobrecarga no Chip */
 .date-chip.is-overloaded {
     border-color: var(--danger-text);
     color: var(--danger-text);
@@ -317,8 +351,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .flashcard-front h2 { color: var(--accent); }
 .cloze-text { font-size: 1.2rem; font-style: italic; opacity: 0.8; }
 
-/* --- IMPLEMENTAÇÃO: ESTILOS DE SOBRECARGA E ÍCONES --- */
-
 /* Alerta de Sobrecarga */
 .overload-alert {
     background: var(--warning-bg);
@@ -362,7 +394,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 
 @keyframes spinSlow { 100% { transform: rotate(360deg); } }
 
-/* Estilo antigo removido. Novo Botão Voltar Profissional */
+/* Botão Voltar Profissional */
 .btn-back-list {
     background: transparent;
     border: 1px solid var(--border);
@@ -399,7 +431,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     display: inline-block;
 }
 
-/* Badge de Streak Refatorado (Delicado e Integrado) */
+/* Badge de Streak */
 .streak-badge {
     position: absolute; bottom: -8px; right: -8px;
     background: var(--white); /* Fundo branco/claro */
@@ -413,7 +445,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     pointer-events: none;
 }
 
-/* NOVO: Estilo para o ícone de feedback do plano */
+/* Plan Indicator */
 .plan-indicator {
     position: absolute;
     top: -6px; left: -6px; /* Canto superior esquerdo */
@@ -428,10 +460,9 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     transition: transform 0.2s;
 }
 .plan-indicator:hover { transform: scale(1.1); }
-.plan-indicator svg { width: 12px; height: 12px; } /* Ícone pequeno e discreto */
+.plan-indicator svg { width: 12px; height: 12px; }
 
-
-/* Botão de Ritmo Refatorado (Sem SVG ring) */
+/* Botão de Ritmo */
 .pacing-btn {
     position: relative;
     border: 2px solid var(--border);
@@ -443,18 +474,13 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 100%; height: 100%;
 }
 
-.progress-ring { display: none; } /* Oculta SVG antigo */
-
 /* Estados Visuais do Botão de Ritmo */
-/* Bloqueado: Borda Vermelha */
 .pacing-btn.is-blocked {
     border-color: #e74c3c;
     color: #e74c3c;
     background-color: var(--danger-bg);
     opacity: 1;
 }
-
-/* Liberado: Borda Verde */
 .pacing-btn.is-ready {
     border-color: var(--success-bg);
     color: var(--success-text);
@@ -507,7 +533,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 
 /* Toast Variants */
-.toast.warning { background: #d35400; } /* Laranja escuro para alertas bíblicos */
+.toast.warning { background: #d35400; }
 .toast.success { background: #27ae60; }
 .toast.error { background: #c0392b; }
 
