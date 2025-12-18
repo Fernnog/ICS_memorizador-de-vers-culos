@@ -46,8 +46,16 @@ Um mapa visual para planejar sua semana:
 1.  **Referência:** Digite o local do texto (ex: *João 3:16*).
 2.  **Data de Início:** Escolha quando começar.
 3.  **Texto:** Cole o versículo completo. O sistema processará automaticamente as lacunas para o treino.
+4.  **Previsão Inteligente:** Observe o painel que surge automaticamente, indicando se os dias futuros de revisão estão livres ou sobrecarregados.
 
-### Passo 2: Monitoramento e Treino
+### Passo 2: Gestão de Ritmo e Constância
+O sistema possui controles dedicados para evitar burnout:
+* **Seletor de Planos:** Escolha entre **Diário** (Intenso), **Alternado** (Equilibrado) ou **Modo Leve** (Foco em meditação/descanso).
+* **Feedback Visual:** Um pequeno ícone no topo esquerdo do botão de ritmo indica qual modo está ativo no momento.
+* **Controle de Bloqueio:** Se tentar adicionar versículos fora do ritmo escolhido, o botão ficará vermelho (bloqueado) para forçar o descanso necessário à consolidação neural.
+* **Badge de Constância (Streak):** Acompanhe quantos dias seguidos você tem mantido sua disciplina através do contador "🔥" no cabeçalho.
+
+### Passo 3: Monitoramento e Treino
 
 A interface foi desenhada para foco total. Utilize os ícones no topo:
 
@@ -61,7 +69,7 @@ A interface foi desenhada para foco total. Utilize os ícones no topo:
 3.  Clique no dia desejado para abrir os cartões.
 4.  Use o **Flashcard 3D**: Tente lembrar o texto oculto e clique no cartão para virá-lo e conferir se acertou.
 
-### Passo 3: Integração com Agenda
+### Passo 4: Integração com Agenda
 * Clique no botão principal **"✅ Confirmar e Gerar Agenda (.ics)"**.
 * Importe o arquivo no seu Google Calendar, Outlook ou Apple Calendar.
 * Nas datas agendadas, você receberá notificações para reforçar o treino fora da aplicação.
@@ -71,12 +79,13 @@ A interface foi desenhada para foco total. Utilize os ícones no topo:
 ## 🛠️ Ficha Técnica
 
 * **Arquitetura:** Single Page Application (SPA) - Client-side only (Offline-first).
-* **Design System:** * **Minimalismo:** Interface limpa focada em conteúdo.
+* **Design System:**
+    * **Minimalismo:** Interface limpa focada em conteúdo.
     * **Dark Mode:** Suporte automático a temas escuros (`prefers-color-scheme`).
-    * **Ícones:** SVG Vetoriais para máxima nitidez em qualquer tela.
+    * **Ícones:** SVG Vetoriais para máxima nitidez em qualquer tela (Retina Ready).
 * **Linguagens:**
     * **HTML5:** Estrutura semântica e Modais interativos.
-    * **CSS3:** Variáveis CSS (`:root`), Grid Layout, Flexbox e Transformações 3D.
+    * **CSS3:** Variáveis CSS (`:root`), Grid Layout, Flexbox, Transformações 3D e Animações.
     * **JavaScript (ES6+):** Lógica SRS, Regex para geração de lacunas (Cloze Deletion) e manipulação de arquivos Blob.
 * **Privacidade:** Nenhum dado é enviado para servidores externos. Tudo reside na sua máquina (LocalStorage).
 
@@ -84,10 +93,10 @@ A interface foi desenhada para foco total. Utilize os ícones no topo:
 
 ## 📂 Estrutura de Arquivos
 
-* `index.html`: Interface principal, estrutura do novo Header e Modais (Radar, Changelog e Flashcards).
-* `style.css`: Estilização visual, regras de Dark Mode e animações 3D.
-* `app.js`: O núcleo lógico. Gerencia o banco de dados local, cálculos de 63 dias e geração de arquivos .ics.
-* `changelog.js`: Base de dados do histórico de versões.
+* `index.html`: Interface principal, estrutura do Header, Indicadores de Ritmo e Modais.
+* `style.css`: Estilização visual, regras de Dark Mode, animações 3D e design responsivo.
+* `app.js`: O núcleo lógico. Gerencia o banco de dados local, cálculos de SRS, injeção de ícones SVG e geração de arquivos .ics.
+* `changelog.js`: Base de dados do histórico de versões (Log de evolução).
 * `README.md`: Este manual de documentação.
 
 ---
