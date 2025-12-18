@@ -399,7 +399,15 @@ window.processAndGenerate = function() {
         dates: reviewDates
     };
     appData.verses.push(newVerse);
-    saveToStorage();
+    saveToStorage(); // Salva localmente (backup/offline)
+
+    // --- NOVO: CONEXÃO COM A NUVEM ---
+    // Se a função existir (está no firebase.js) e tiver usuário logado, salva na nuvem
+    if (window.saveVerseToFirestore) {
+        window.saveVerseToFirestore(newVerse); 
+    }
+    // ---------------------------------
+
     updateTable();
     updateRadar();
     updatePacingUI(); // Atualiza bloqueio imediatamente
@@ -632,3 +640,20 @@ window.closeChangelog = function() {
 };
 
 window.updateRadar = updateRadar;
+
+// --- SINCRONIZAÇÃO INICIAL (FIREBASE) ---
+if (window.loadVersesFromFirestore) {
+    setTimeout(() => {
+        if (typeof auth !== 'undefined' && auth.currentUser) {
+            window.loadVersesFromFirestore((cloudVerses) => {
+                if (cloudVerses && cloudVerses.length > 0) {
+                    appData.verses = cloudVerses;
+                    saveToStorage();
+                    updateTable();
+                    updateRadar();
+                    showToast('Dados sincronizados da nuvem!', 'success');
+                }
+            });
+        }
+    }, 2000); 
+}
