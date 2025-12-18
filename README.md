@@ -24,16 +24,16 @@ O **NeuroBible** resolve isso atuando como um "Personal Trainer" para sua memór
 O sistema opera sobre quatro pilares científicos:
 
 ### 1. O Algoritmo de Repetição Espaçada (SRS)
-O sistema projeta 7 revisões estratégicas para cada versículo ao longo de 60 dias:
-* **Intervalos:** 1, 3, 7, 14, 21, 30, 60 dias.
-* **Objetivo:** Interceptar a memória logo antes dela desaparecer, reforçando o traço mnemônico.
+O sistema projeta **8 etapas estratégicas** de contato para cada versículo ao longo de 60 dias:
+* **Intervalos:** 0 (Hoje), 1, 3, 7, 14, 21, 30, 60 dias.
+* **Objetivo:** O ciclo inicia imediatamente no "Dia 0" (Plantio/Aprendizado) para feedback visual imediato, seguido por revisões que interceptam a memória logo antes dela desaparecer.
 
 ### 2. Recuperação Ativa & Omissão (Cloze Deletion)
 Para evitar a leitura passiva, o sistema nunca entrega a resposta de bandeja:
 * **Na Agenda (.ics):** O evento oculta palavras-chave aleatórias.
 * **No Navegador (Flashcards):** Cartões interativos ocultam partes do texto, forçando o cérebro a preencher as lacunas.
 
-### 3. Gestão de Carga & "Válvula de Escape" (Novo v1.0.5)
+### 3. Gestão de Carga & "Válvula de Escape"
 O sistema monitora a saúde mental do usuário:
 * **Detecção:** Se um dia acumular mais de 5 revisões, um alerta visual é disparado.
 * **Ação:** Com um clique, o sistema busca automaticamente o próximo dia "Leve" (com pouca carga) na agenda futura e move o excesso para lá, garantindo que o estudo nunca se torne um fardo.
@@ -50,7 +50,8 @@ Para garantir a constância, o usuário define seu ritmo de entrada:
 
 ### Passo 1: Inserção & Previsão
 1.  **Dados:** Insira a referência, data e texto.
-2.  **Previsão Inteligente:** Antes de salvar, observe o painel "Previsão de Revisões". Se houver dias com borda vermelha, significa que aquela data futura já está cheia. O sistema avisa antes de acontecer.
+2.  **Previsão Inteligente:** Antes de salvar, observe o painel "Previsão de Revisões". Se houver dias com borda vermelha, significa que aquela data futura já está cheia.
+3.  **Feedback Imediato:** Ao confirmar, o dia de hoje ("Dia 0") acenderá no Radar, confirmando o início do ciclo.
 
 ### Passo 2: Treino Diário (Flashcards)
 Acesse o ícone do **Radar** e clique no dia atual (ou dias passados coloridos).
