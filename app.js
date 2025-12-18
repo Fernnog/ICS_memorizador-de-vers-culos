@@ -13,11 +13,18 @@ window.onload = function() {
     const today = new Date();
     document.getElementById('startDate').valueAsDate = today;
     
+    // Listeners para o Painel de Previsão (Reatividade - Prioridade 2)
+    const dateInput = document.getElementById('startDate');
+    const refInput = document.getElementById('ref');
+    
+    if(dateInput) dateInput.addEventListener('change', updatePreviewPanel);
+    if(refInput) refInput.addEventListener('input', updatePreviewPanel);
+
     // Inicializações de Lógica
-    checkStreak();      // NOVO: Verifica dias seguidos
+    checkStreak();      
     updateTable();
-    updateRadar();      // Calcula carga
-    updatePacingUI();   // NOVO: Atualiza estado do botão de ritmo
+    updateRadar();      
+    updatePacingUI();   
 };
 
 function saveToStorage() {
@@ -134,27 +141,23 @@ function updateRadar() {
     }
 }
 
-// --- NOVAS FUNÇÕES: PACING & STREAK ---
+// --- NOVAS FUNÇÕES: PACING, STREAK & PREVIEW ---
 
 function checkStreak() {
     const today = new Date().toISOString().split('T')[0];
     
-    // Garante inicialização se falhar no load
     if (!appData.stats) appData.stats = { streak: 0, lastLogin: null };
     
     const lastLogin = appData.stats.lastLogin;
     
-    // Se é o primeiro acesso do dia
     if (lastLogin !== today) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
         if (lastLogin === yesterdayStr) {
-            // Entrou ontem e hoje: Aumenta streak
             appData.stats.streak++;
         } else {
-            // Quebrou a sequência ou primeiro acesso (inicia/reinicia em 1)
             appData.stats.streak = 1;
         }
         
@@ -162,16 +165,15 @@ function checkStreak() {
         saveToStorage();
     }
     
-    // Atualiza visual
     const badge = document.getElementById('streakBadge');
     if(badge) badge.innerText = `🔥 ${appData.stats.streak}`;
 }
 
+// Refatoração: Simplificação visual (Remove SVG Logic) - Prioridade 1
 function updatePacingUI() {
     const btn = document.getElementById('btnPacing');
     if(!btn) return;
     
-    const circle = btn.querySelector('.progress-ring__circle');
     const interval = appData.settings?.planInterval || 1;
 
     // Achar data do último verso inserido
@@ -188,7 +190,7 @@ function updatePacingUI() {
 
     // Se não há versículos, está liberado
     if (!lastDate) {
-        setPacingState(btn, circle, 'ready', 0);
+        setPacingState(btn, 'ready');
         return;
     }
 
@@ -199,24 +201,66 @@ function updatePacingUI() {
 
     if (diffDays >= interval) {
         // Liberado
-        setPacingState(btn, circle, 'ready', 0);
+        setPacingState(btn, 'ready');
         btn.title = "Novo versículo liberado! O tempo de plantar chegou.";
     } else {
         // Bloqueado
         const remaining = interval - diffDays;
-        const percent = diffDays / interval;
-        const circumference = 113; // 2 * PI * 18
-        const offset = circumference - (percent * circumference); 
-        
-        setPacingState(btn, circle, 'blocked', offset);
+        setPacingState(btn, 'blocked');
         btn.title = `Aguarde ${remaining} dia(s). O descanso faz parte do plano.`;
     }
 }
 
-function setPacingState(btn, circle, state, offset) {
+function setPacingState(btn, state) {
     btn.classList.remove('is-ready', 'is-blocked');
     btn.classList.add(`is-${state}`);
-    if(circle) circle.style.strokeDashoffset = offset;
+}
+
+// NOVA FUNÇÃO: Lógica do Painel de Previsão e Alerta de Carga - Prioridade 2 e 3
+function updatePreviewPanel() {
+    const dateInput = document.getElementById('startDate').value;
+    const refInput = document.getElementById('ref').value.trim();
+    const panel = document.getElementById('previewPanel');
+    const container = document.getElementById('previewChips');
+
+    // Só mostra se tiver data e pelo menos 3 caracteres na referência
+    if (!dateInput || refInput.length < 3) {
+        if(panel) panel.style.display = 'none';
+        updateRadar(); // Atualiza radar (limpa preview visual do grid)
+        return;
+    }
+
+    const futureDates = calculateSRSDates(dateInput);
+    
+    // Calcula carga atual para verificar sobrecarga (Prioridade 3)
+    const currentLoadMap = {};
+    appData.verses.forEach(v => {
+        v.dates.forEach(d => {
+            currentLoadMap[d] = (currentLoadMap[d] || 0) + 1;
+        });
+    });
+
+    if(panel) panel.style.display = 'block';
+    
+    if(container) {
+        container.innerHTML = futureDates.map((dateStr, index) => {
+            const d = new Date(dateStr + 'T00:00:00');
+            const dayName = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+            const formattedDate = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            
+            // Verifica Sobrecarga (High Load > 5 itens existentes)
+            const load = currentLoadMap[dateStr] || 0;
+            const isOverloaded = load >= 5; 
+            const chipClass = isOverloaded ? 'date-chip is-overloaded' : 'date-chip';
+            const titleAttr = isOverloaded ? `Sobrecarga! Dia já tem ${load} revisões.` : `Dia com ${load} revisões.`;
+
+            // Rev + 1 porque index começa em 0
+            return `<span class="${chipClass}" title="${titleAttr}">Rev ${index+1}: ${dayName} ${formattedDate}</span>`;
+        }).join('');
+    }
+
+    // Mantém o radar principal em sincronia
+    updateRadar();
 }
 
 // --- UTILITÁRIOS: MODAIS & TOAST ---
@@ -249,7 +293,6 @@ window.showToast = function(msg, type = 'success') {
     
     box.appendChild(el);
     
-    // Remove após 4 segundos
     setTimeout(() => {
         el.style.opacity = '0';
         setTimeout(() => el.remove(), 300);
@@ -278,19 +321,17 @@ function generateClozeText(text) {
     }).join(' ');
 }
 
-// --- 5. AÇÃO PRINCIPAL E ICS (MODIFICADA) ---
+// --- 5. AÇÃO PRINCIPAL E ICS ---
 window.processAndGenerate = function() {
-    // 1. Verificação de Bloqueio de Ritmo (NOVO)
+    // 1. Verificação de Bloqueio de Ritmo
     const btn = document.getElementById('btnPacing');
     if (btn && btn.classList.contains('is-blocked')) {
-        // Efeito visual de negação
         btn.style.transform = "scale(1.1)";
         setTimeout(() => btn.style.transform = "scale(1)", 200);
         
-        // Mensagem Personalizada com Princípio Bíblico
         const interval = appData.settings?.planInterval || 1;
-        showToast(`O descanso é um princípio bíblico. Aguarde o ciclo (${interval} dias) para evitar sobrecarga.`, 'warning');
-        return; // ABORTA A INSERÇÃO
+        showToast(`O descanso é um princípio bíblico. Aguarde o ciclo (${interval} dias).`, 'warning');
+        return; 
     }
 
     const ref = document.getElementById('ref').value.trim();
@@ -314,12 +355,15 @@ window.processAndGenerate = function() {
     saveToStorage();
     updateTable();
     updateRadar();
-    updatePacingUI(); // Atualiza bloqueio imediatamente após inserir
+    updatePacingUI(); // Atualiza bloqueio imediatamente
 
     generateICSFile(newVerse, reviewDates);
 
     document.getElementById('ref').value = '';
     document.getElementById('text').value = '';
+    
+    // Atualiza/Limpa o painel de previsão
+    updatePreviewPanel();
     
     showToast(`"${ref}" agendado com sucesso!`, 'success');
 };
@@ -462,7 +506,7 @@ window.deleteVerse = function(id) {
         saveToStorage();
         updateTable();
         updateRadar();
-        updatePacingUI(); // Atualiza UI caso o último verso seja apagado
+        updatePacingUI();
     }
 };
 
@@ -475,7 +519,7 @@ window.clearData = function() {
         updateTable();
         updateRadar();
         updatePacingUI();
-        checkStreak(); // Reseta visual do streak
+        checkStreak(); 
     }
 };
 
@@ -495,8 +539,8 @@ window.importData = function(input) {
         try {
             const parsed = JSON.parse(e.target.result);
             appData = { 
-                ...appData, // Mantém defaults
-                ...parsed // Sobrescreve com dados do arquivo
+                ...appData, 
+                ...parsed 
             };
             saveToStorage();
             updateTable();
