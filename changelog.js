@@ -1,17 +1,25 @@
 // changelog.js
-// Estrutura de dados para gerenciar o histórico de versões
 const systemChangelog = [
+    {
+        version: "1.0.1",
+        date: "2025-12-18",
+        title: "Flashcards Integrados ao Radar",
+        changes: [
+            "🃏 <b>Flashcards Interativos:</b> Agora o Radar de Carga é clicável! Clique em qualquer dia colorido para abrir a revisão.",
+            "🔄 <b>Animação 3D:</b> Treine sua memória com cartões que viram na tela (Frente: Lacunas / Verso: Resposta).",
+            "✨ <b>Modo Foco:</b> A revisão acontece dentro da página, sem precisar sair para o calendário."
+        ]
+    },
     {
         version: "1.0.0",
         date: "2025-12-18",
         title: "Lançamento Oficial & Neuro-Upgrade",
         changes: [
-            "✨ Implementação do sistema de Changelog visual.",
-            "🧠 Integração de Recordação Ativa: Omissão de palavras (Cloze Deletion) nos arquivos .ics gerados.",
-            "📅 Formatação aprimorada do evento de calendário para separar desafio cognitivo da resposta."
+            "🧠 <b>Recuperação Ativa:</b> Os eventos da agenda (.ics) agora ocultam palavras-chave estrategicamente.",
+            "🙈 <b>Omissão & Resposta:</b> O arquivo de agenda separa o desafio da resposta original (role para baixo no evento para ver).",
+            "📊 <b>Radar de Carga:</b> Sistema de prevenção de burnout mental."
         ]
     }
-    // Para futuras versões, basta adicionar novos objetos aqui no topo.
 ];
 
 // Expõe para uso global
