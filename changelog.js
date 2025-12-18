@@ -1,6 +1,16 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.5",
+        date: "2025-12-18",
+        title: "Gestão de Sobrecarga & Refino UI",
+        changes: [
+            "🚨 <b>Válvula de Escape:</b> Dias com mais de 5 revisões agora exibem um alerta inteligente. Com um clique, você transfere o excesso automaticamente para o próximo dia 'Leve' disponível na agenda.",
+            "🎨 <b>Flashcards Premium:</b> Adeus emojis! A tela de treino agora usa ícones vetoriais com animações suaves de rotação e tipografia refinada para uma experiência mais imersiva.",
+            "👻 <b>Foco Total:</b> O botão de 'Voltar' foi redesenhado no estilo 'Ghost' (transparente e minimalista), reduzindo distrações visuais durante sua memorização."
+        ]
+    },
+    {
         version: "1.0.4",
         date: "2025-12-18",
         title: "Harmonia Visual & Modo Leve",
