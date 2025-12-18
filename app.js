@@ -22,7 +22,7 @@ window.onload = function() {
     const startDateInput = document.getElementById('startDate');
     if(startDateInput) startDateInput.valueAsDate = today;
     
-    // Listeners para o Painel de Previsão (Reatividade - Prioridade 2)
+    // Listeners para o Painel de Previsão (Reatividade)
     const refInput = document.getElementById('ref');
     
     if(startDateInput) startDateInput.addEventListener('change', updatePreviewPanel);
@@ -84,8 +84,11 @@ function updateRadar() {
     
     grid.innerHTML = '';
 
-    const startDateInput = document.getElementById('startDate').value;
-    const currentPreviewDates = calculateSRSDates(startDateInput);
+    const startDateEl = document.getElementById('startDate');
+    const startDateInput = startDateEl ? startDateEl.value : null;
+    
+    // Só calcula preview se tiver data válida
+    const currentPreviewDates = startDateInput ? calculateSRSDates(startDateInput) : [];
     const loadMap = {};
 
     // A. Somar Carga Histórica
@@ -96,7 +99,9 @@ function updateRadar() {
     });
 
     // B. Somar Carga Preview
-    const isPreviewActive = document.getElementById('ref').value.trim() !== "";
+    const refEl = document.getElementById('ref');
+    const isPreviewActive = refEl && refEl.value.trim() !== "";
+    
     if (isPreviewActive) {
         currentPreviewDates.forEach(d => {
             loadMap[d] = (loadMap[d] || 0) + 1;
@@ -109,12 +114,14 @@ function updateRadar() {
     const todayLoad = loadMap[todayStr] || 0;
     
     const radarBtn = document.getElementById('btnRadar');
-    if (todayLoad > 0) {
-        radarBtn.classList.add('has-alert');
-        radarBtn.title = `Atenção: ${todayLoad} revisões para hoje!`;
-    } else {
-        radarBtn.classList.remove('has-alert');
-        radarBtn.title = "Abrir Radar de Carga (63 dias)";
+    if (radarBtn) {
+        if (todayLoad > 0) {
+            radarBtn.classList.add('has-alert');
+            radarBtn.title = `Atenção: ${todayLoad} revisões para hoje!`;
+        } else {
+            radarBtn.classList.remove('has-alert');
+            radarBtn.title = "Abrir Radar de Carga (63 dias)";
+        }
     }
 
     // D. Renderizar 63 dias (9 semanas completas)
@@ -251,10 +258,15 @@ function setPacingState(btn, state) {
     btn.classList.add(`is-${state}`);
 }
 
-// NOVA FUNÇÃO: Lógica do Painel de Previsão e Alerta de Carga - Prioridade 2 e 3
+// NOVA FUNÇÃO: Lógica do Painel de Previsão e Alerta de Carga
 function updatePreviewPanel() {
-    const dateInput = document.getElementById('startDate').value;
-    const refInput = document.getElementById('ref').value.trim();
+    const dateEl = document.getElementById('startDate');
+    const refEl = document.getElementById('ref');
+    
+    if(!dateEl || !refEl) return;
+
+    const dateInput = dateEl.value;
+    const refInput = refEl.value.trim();
     const panel = document.getElementById('previewPanel');
     const container = document.getElementById('previewChips');
 
@@ -267,7 +279,7 @@ function updatePreviewPanel() {
 
     const futureDates = calculateSRSDates(dateInput);
     
-    // Calcula carga atual para verificar sobrecarga (Prioridade 3)
+    // Calcula carga atual para verificar sobrecarga
     const currentLoadMap = {};
     appData.verses.forEach(v => {
         v.dates.forEach(d => {
@@ -521,7 +533,11 @@ window.closeReview = function() {
 // --- 7. CHANGELOG & UTILITÁRIOS ---
 function updateTable() {
     const tbody = document.querySelector('#historyTable tbody');
-    document.getElementById('countDisplay').innerText = appData.verses.length;
+    if(!tbody) return;
+    
+    const countEl = document.getElementById('countDisplay');
+    if(countEl) countEl.innerText = appData.verses.length;
+    
     tbody.innerHTML = '';
 
     [...appData.verses].reverse().forEach(v => {
@@ -614,6 +630,5 @@ window.openChangelog = function() {
 window.closeChangelog = function() {
     document.getElementById('changelogModal').style.display = 'none';
 };
-
 
 window.updateRadar = updateRadar;
