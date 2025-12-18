@@ -1,6 +1,17 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.8",
+        date: "2025-12-18",
+        title: "Cloud Sync & Correções Mobile",
+        changes: [
+            "☁️ <b>Sincronização na Nuvem:</b> O NeuroBible agora está conectado! Crie sua conta para salvar seus versículos automaticamente no Firebase. Adeus backups manuais.",
+            "🔐 <b>Sistema de Login:</b> Substituímos os antigos botões de importar/exportar por um painel de autenticação seguro (E-mail e Senha).",
+            "📱 <b>Mobile First:</b> Correção total do layout em celulares. O cabeçalho agora se adapta verticalmente e os formulários não 'vazam' mais da tela em dispositivos menores.",
+            "✨ <b>Persistência Híbrida:</b> O sistema mantém seus dados locais se estiver offline e sincroniza assim que a conexão volta."
+        ]
+    },
+    {
         version: "1.0.7",
         date: "2025-12-18",
         title: "Mobile PWA & Modo Offline",
