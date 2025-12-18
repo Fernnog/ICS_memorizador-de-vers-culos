@@ -54,14 +54,10 @@
                 <span class="notification-dot"></span>
             </button>
             
-            <button class="btn-icon" onclick="exportData()" title="Fazer Backup (.json)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <button id="btnAuth" class="btn-icon" onclick="openAuthModal()" title="Entrar / Minha Conta">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span id="authStatusDot" class="notification-dot" style="background-color: #ccc; display: block;"></span>
             </button>
-            
-            <label class="btn-icon" title="Restaurar Backup">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/><polyline points="16 16 12 12 8 16"/></svg>
-                <input type="file" style="display:none;" onchange="importData(this)" accept=".json">
-            </label>
         </div>
     </header>
 
@@ -215,8 +211,40 @@
     </div>
 </div>
 
+<div id="authModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Acesso NeuroBible</h3>
+            <button class="close-modal" onclick="closeAuthModal()">×</button>
+        </div>
+        <div class="auth-form-container">
+            <p id="authMessage" style="font-size: 0.9rem; color: var(--text); opacity: 0.8; margin-bottom: 20px;">
+                Entre para sincronizar seus versículos na nuvem.
+            </p>
+            <div class="form-group">
+                <label for="authEmail">E-mail</label>
+                <input type="email" id="authEmail" placeholder="seu@email.com">
+            </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="authPassword">Senha</label>
+                <input type="password" id="authPassword" placeholder="******">
+            </div>
+            <div style="margin-top: 25px; display: flex; gap: 10px;">
+                <button class="btn-main" onclick="handleLogin()">Entrar</button>
+                <button class="btn-ghost-danger" style="border: 1px solid var(--border); color: var(--text);" onclick="handleSignUp()">Criar Conta</button>
+            </div>
+            <button id="btnLogout" class="btn-ghost-danger" style="margin-top: 20px; width: 100%; display: none;" onclick="handleLogout()">Sair da Conta</button>
+        </div>
+    </div>
+</div>
+
 <div id="toastBox" class="toast-box"></div>
 
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script src="firebase.js"></script>
 <script src="app.js"></script>
 
 </body>
