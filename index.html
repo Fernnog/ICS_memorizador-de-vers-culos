@@ -46,7 +46,7 @@
 
     <div class="radar-panel">
         <div class="radar-header">
-            <strong>Radar de Carga (Próximos 42 dias)</strong>
+            <strong>Radar de Carga (Clique nos dias para revisar)</strong>
             <div class="legend">
                 <span><span class="dot" style="background:#d4edda"></span>Leve (1-2)</span>
                 <span><span class="dot" style="background:#fff3cd"></span>Médio (3-5)</span>
@@ -87,8 +87,39 @@
     </div>
 </div>
 
+<div id="reviewModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content review-content">
+        <div class="modal-header">
+            <h3 id="reviewTitle">Revisão do Dia</h3>
+            <button class="close-modal" onclick="closeReview()">×</button>
+        </div>
+        
+        <div id="reviewListContainer">
+            <p class="instruction-text">Selecione um versículo para treinar:</p>
+            <div id="reviewList" class="verse-list"></div>
+        </div>
+
+        <div id="flashcardContainer" style="display:none;">
+            <div class="flashcard" onclick="flipCard()">
+                <div class="flashcard-inner" id="flashcardInner">
+                    <div class="flashcard-front">
+                        <small>O QUE DIZ O TEXTO?</small>
+                        <h2 id="cardRef">João 3:16</h2>
+                        <p id="cardCloze" class="cloze-text">...</p>
+                        <span class="tap-hint">👆 Clique para virar</span>
+                    </div>
+                    <div class="flashcard-back">
+                        <small>RESPOSTA COMPLETA</small>
+                        <p id="cardFullText">...</p>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-small btn-back-list" onclick="backToList()">⬅ Voltar para a Lista</button>
+        </div>
+    </div>
+</div>
+
 <script src="app.js"></script>
 
 </body>
-    </html>
-    
+</html>
