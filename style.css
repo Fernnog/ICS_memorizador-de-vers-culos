@@ -141,6 +141,34 @@ input, textarea {
 input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 
+/* --- NOVO: PAINEL DE PREVISÃO (PRIORIDADE 1 e 3) --- */
+.preview-panel {
+    margin-bottom: 20px;
+    animation: slideUp 0.3s ease;
+}
+.preview-panel small {
+    display: block; margin-bottom: 8px; color: var(--primary); font-weight: 600;
+}
+.preview-chips-container {
+    display: flex; gap: 8px; flex-wrap: wrap;
+}
+.date-chip {
+    font-size: 0.8rem; padding: 6px 12px;
+    background: var(--white); border: 1px solid var(--accent);
+    color: var(--accent); border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    cursor: default;
+}
+/* Alerta de Sobrecarga no Chip (Prioridade 3) */
+.date-chip.is-overloaded {
+    border-color: var(--danger-text);
+    color: var(--danger-text);
+    background-color: var(--danger-bg);
+    font-weight: bold;
+    border-width: 2px;
+}
+
 /* Botão Principal */
 .btn-main {
     width: 100%; padding: 15px;
@@ -150,10 +178,27 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     text-transform: uppercase; letter-spacing: 0.5px;
     cursor: pointer; transition: all 0.3s;
     box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    /* Ajuste para SVG centralizado */
+    display: flex; align-items: center; justify-content: center;
 }
 .btn-main:hover {
     box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
     transform: translateY(-1px);
+}
+
+/* Botão Limpar Tudo (Novo Estilo) */
+.btn-ghost-danger {
+    background: transparent; border: 1px solid transparent;
+    color: var(--text); opacity: 0.6;
+    padding: 5px 10px; border-radius: 4px;
+    font-size: 0.8rem; cursor: pointer; transition: 0.2s;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+.btn-ghost-danger:hover {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    opacity: 1; border-color: var(--danger-text);
 }
 
 /* --- HISTÓRICO --- */
@@ -198,7 +243,14 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .load-0 { opacity: 0.5; }
 .load-low { background: var(--success-bg); color: var(--success-text); border-color: var(--success-bg); }
 .load-med { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-bg); }
-.load-high { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-bg); font-weight: bold; }
+
+/* Feedback de Sobrecarga no Radar (Borda Vermelha) */
+.load-high { 
+    background: var(--danger-bg); 
+    color: var(--danger-text); 
+    border: 2px solid #e74c3c !important; /* Força borda vermelha */
+    font-weight: bold; 
+}
 
 .is-preview { box-shadow: inset 0 0 0 2px var(--accent); }
 
@@ -296,42 +348,34 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     pointer-events: none; /* Deixa clique passar para o botão se sobrepor */
 }
 
-/* Botão de Ritmo e Anel */
+/* Botão de Ritmo Refatorado (Sem SVG ring) */
 .pacing-btn {
     position: relative;
-    overflow: visible; /* Garante que o SVG não corte */
+    border: 2px solid var(--border);
+    transition: all 0.3s ease;
 }
 
 .pacing-btn .icon-inner {
-    position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    z-index: 1;
+    width: 100%; height: 100%;
 }
 
-.progress-ring {
-    position: absolute; top: 0; left: 0;
-    transform: rotate(-90deg); /* Começa do topo */
-}
-
-.progress-ring__circle {
-    stroke-dasharray: 113; /* Circunferência de raio 18 */
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 0.5s ease-in-out, stroke 0.3s;
-    transform-origin: 50% 50%;
-}
+.progress-ring { display: none; } /* Oculta SVG antigo */
 
 /* Estados Visuais do Botão de Ritmo */
-.pacing-btn.is-blocked .progress-ring__circle { stroke: #e67e22; } /* Laranja: Espera/Bloqueio */
+/* Bloqueado: Borda Vermelha */
 .pacing-btn.is-blocked {
-    color: #e67e22;
-    border-color: #e67e22;
-    opacity: 0.9;
+    border-color: #e74c3c;
+    color: #e74c3c;
+    background-color: var(--danger-bg);
+    opacity: 1;
 }
 
-.pacing-btn.is-ready .progress-ring__circle { stroke: var(--success-text); } /* Verde: Liberado */
+/* Liberado: Borda Verde */
 .pacing-btn.is-ready {
-    color: var(--success-text);
     border-color: var(--success-bg);
+    color: var(--success-text);
+    background-color: var(--success-bg);
     box-shadow: 0 0 8px rgba(40, 167, 69, 0.15);
 }
 
