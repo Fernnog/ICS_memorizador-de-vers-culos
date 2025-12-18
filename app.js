@@ -5,9 +5,10 @@ let appData = {
 
 // Inicialização
 window.onload = function() {
+    initChangelog(); // Inicializa o versionamento
     loadFromStorage();
     
-    // Define data de hoje no input
+    // Define data de hoje no input se estiver vazio
     const today = new Date();
     document.getElementById('startDate').valueAsDate = today;
     
@@ -17,7 +18,7 @@ window.onload = function() {
 
 function saveToStorage() {
     localStorage.setItem('neuroBibleData', JSON.stringify(appData));
-    updateRadar(); // Recalcular radar sempre que salvar
+    updateRadar();
 }
 
 function loadFromStorage() {
@@ -28,14 +29,13 @@ function loadFromStorage() {
 }
 
 // --- 2. LÓGICA DE NEUROAPRENDIZAGEM (SRS) ---
-// Retorna array de strings 'YYYY-MM-DD'
 function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
     
     // Estratégia Padrão: 1, 3, 7, 14, 21, 30, 60 dias
     const intervals = [1, 3, 7, 14, 21, 30, 60];
     const dates = [];
-    const start = new Date(startDateStr + 'T00:00:00'); // Força local time meia noite
+    const start = new Date(startDateStr + 'T00:00:00'); 
 
     intervals.forEach(days => {
         const d = new Date(start);
@@ -57,7 +57,6 @@ function updateRadar() {
     const startDateInput = document.getElementById('startDate').value;
     const currentPreviewDates = calculateSRSDates(startDateInput);
 
-    // Mapa de carga: { '2023-10-01': 5, '2023-10-02': 2 }
     const loadMap = {};
 
     // A. Somar Carga do Histórico
@@ -67,7 +66,7 @@ function updateRadar() {
         });
     });
 
-    // B. Somar Carga do Preview (O que o usuário está digitando)
+    // B. Somar Carga do Preview
     const isPreviewActive = document.getElementById('ref').value.trim() !== "";
     if (isPreviewActive) {
         currentPreviewDates.forEach(d => {
@@ -75,9 +74,8 @@ function updateRadar() {
         });
     }
 
-    // C. Renderizar próximos 42 dias (6 semanas)
+    // C. Renderizar próximos 42 dias
     const today = new Date();
-    
     for (let i = 0; i < 42; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() + i);
@@ -87,13 +85,11 @@ function updateRadar() {
         const cell = document.createElement('div');
         cell.className = 'day-cell';
         
-        // Cores baseadas na carga
         if (count === 0) cell.classList.add('load-0');
         else if (count <= 2) cell.classList.add('load-low');
         else if (count <= 5) cell.classList.add('load-med');
         else cell.classList.add('load-high');
 
-        // Borda azul se for data do novo versículo
         if (isPreviewActive && currentPreviewDates.includes(dateStr)) {
             cell.classList.add('is-preview');
         }
@@ -104,8 +100,21 @@ function updateRadar() {
     }
 }
 
-// --- 4. AÇÃO PRINCIPAL ---
-// Expondo explicitamente ao window para garantir que o onclick do HTML funcione
+// --- 4. AÇÃO PRINCIPAL E INTEGRAÇÃO NEUROCIÊNCIA ---
+
+// Algoritmo de Omissão (Cloze Deletion) para Recuperação Ativa
+function generateClozeText(text) {
+    const words = text.split(' ');
+    // Oculta aleatoriamente palavras com mais de 3 letras (~40% de chance)
+    return words.map(word => {
+        const cleanWord = word.replace(/[.,;!?]/g, '');
+        if (cleanWord.length > 3 && Math.random() > 0.6) {
+            return "______"; // Lacuna visual
+        }
+        return word;
+    }).join(' ');
+}
+
 window.processAndGenerate = function() {
     const ref = document.getElementById('ref').value.trim();
     const text = document.getElementById('text').value.trim();
@@ -116,10 +125,8 @@ window.processAndGenerate = function() {
         return;
     }
 
-    // 1. Calcular Datas Reais
     const reviewDates = calculateSRSDates(startDate);
 
-    // 2. Salvar no Estado
     const newVerse = {
         id: Date.now(),
         ref: ref,
@@ -132,22 +139,20 @@ window.processAndGenerate = function() {
     updateTable();
     updateRadar();
 
-    // 3. Gerar ICS
+    // Gera o ICS com a nova lógica de Recuperação Ativa
     generateICSFile(newVerse, reviewDates);
 
-    // 4. Limpar Form
     document.getElementById('ref').value = '';
     document.getElementById('text').value = '';
-    alert(`Versículo "${ref}" adicionado ao sistema e agenda gerada!`);
-    updateRadar(); // Remove o preview azul
+    alert(`Versículo "${ref}" adicionado! O arquivo da agenda foi gerado com exercícios de memorização.`);
+    updateRadar();
 };
 
-// --- 5. GERAÇÃO DE ICS (Formato iCal) ---
+// --- 5. GERAÇÃO DE ICS (Com Active Recall) ---
 function generateICSFile(verseData, dates) {
     const uidBase = verseData.id;
     const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     
-    // Cabeçalho ICS
     let icsContent = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
@@ -155,18 +160,28 @@ function generateICSFile(verseData, dates) {
         'CALSCALE:GREGORIAN'
     ].join('\r\n');
 
-    // Gera um VEVENT para cada data calculada
+    // 1. Gera texto com lacunas
+    const clozeText = generateClozeText(verseData.text);
+    
+    // 2. Cria descrição com separação visual (Forçar Scroll)
+    // O uso de \n aqui será convertido para \\n pelo escapeICS, criando quebras reais na agenda
+    const rawDescription = 
+        `🧠 DESAFIO DE MEMÓRIA (Recuperação Ativa)\n` +
+        `Tente completar as lacunas mentalmente:\n\n` +
+        `"${clozeText}"\n\n` +
+        `.\n.\n.\n.\n.\n.\n.\n.\n` + 
+        `👇 Role para ver a resposta\n.\n.\n.\n.\n` + 
+        `📖 RESPOSTA ORIGINAL:\n${verseData.text}`;
+
+    const description = escapeICS(rawDescription);
+
     dates.forEach((dateStr, index) => {
-        // Converter YYYY-MM-DD para formato ICS Date (YYYYMMDD)
         const dtStart = dateStr.replace(/-/g, '');
-        
-        // Data final (dia seguinte, pois é evento de dia inteiro)
         const dEnd = new Date(dateStr + 'T00:00:00');
         dEnd.setDate(dEnd.getDate() + 1);
         const dtEnd = formatDateISOSimple(dEnd).replace(/-/g, '');
 
-        const description = escapeICS(verseData.text);
-        const summary = `Memorizar: ${verseData.ref} (Rev ${index+1})`;
+        const summary = `NeuroBible: ${verseData.ref} (Rev ${index+1})`;
 
         const eventBlock = [
             'BEGIN:VEVENT',
@@ -184,7 +199,6 @@ function generateICSFile(verseData, dates) {
 
     icsContent += '\r\nEND:VCALENDAR';
 
-    // Download
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -203,13 +217,12 @@ function escapeICS(str) {
               .replace(/\n/g, '\\n');
 }
 
-// --- 6. FUNÇÕES AUXILIARES E UI ---
+// --- 6. FUNÇÕES AUXILIARES, UI e CHANGELOG ---
 function updateTable() {
     const tbody = document.querySelector('#historyTable tbody');
     document.getElementById('countDisplay').innerText = appData.verses.length;
     tbody.innerHTML = '';
 
-    // Mostra os mais recentes primeiro
     [...appData.verses].reverse().forEach(v => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -221,7 +234,6 @@ function updateTable() {
     });
 }
 
-// Expondo ao window para os botões do HTML funcionarem
 window.deleteVerse = function(id) {
     if(confirm('Remover este versículo do histórico de carga?')) {
         appData.verses = appData.verses.filter(v => v.id !== id);
@@ -270,6 +282,35 @@ window.importData = function(input) {
     reader.readAsText(file);
 };
 
-// Também precisamos expor updateRadar para o input "onchange" no HTML
+// UI: Changelog
+function initChangelog() {
+    // Pega a versão mais recente do arquivo changelog.js
+    const latest = window.neuroChangelog ? window.neuroChangelog[0] : { version: '0.0.0' };
+    document.getElementById('currentVersion').innerText = `v${latest.version}`;
+}
+
+window.openChangelog = function() {
+    const modal = document.getElementById('changelogModal');
+    const body = document.getElementById('changelogBody');
+    
+    if (!window.neuroChangelog) return;
+
+    body.innerHTML = window.neuroChangelog.map(log => `
+        <div class="changelog-item">
+            <span class="changelog-date">${log.date}</span>
+            <span class="changelog-title">v${log.version} - ${log.title}</span>
+            <ul class="changelog-ul">
+                ${log.changes.map(c => `<li>${c}</li>`).join('')}
+            </ul>
+        </div>
+    `).join('');
+    
+    modal.style.display = 'flex';
+};
+
+window.closeChangelog = function() {
+    document.getElementById('changelogModal').style.display = 'none';
+};
+
+// Expor updateRadar para o HTML
 window.updateRadar = updateRadar;
-      
