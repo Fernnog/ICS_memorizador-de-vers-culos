@@ -1,7 +1,7 @@
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
     verses: [], // { id, ref, text, startDate, dates: [] }
-    settings: { planInterval: 1 }, // 1=Diário, 2=Alternado, 3=Zen
+    settings: { planInterval: 1 }, // 1=Diário, 2=Alternado, 3=Leve
     stats: { streak: 0, lastLogin: null } // Controle de Constância
 };
 
@@ -169,12 +169,41 @@ function checkStreak() {
     if(badge) badge.innerText = `🔥 ${appData.stats.streak}`;
 }
 
-// Refatoração: Simplificação visual (Remove SVG Logic) - Prioridade 1
+// Refatoração: Simplificação visual e Injeção de Ícone de Feedback
 function updatePacingUI() {
     const btn = document.getElementById('btnPacing');
     if(!btn) return;
     
     const interval = appData.settings?.planInterval || 1;
+
+    // Configuração dos Planos (SVG + Labels)
+    const planConfig = {
+        1: { 
+            label: "Diário", 
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' 
+        },
+        2: { 
+            label: "Alternado", 
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>' 
+        },
+        3: { 
+            label: "Modo Leve", 
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>' 
+        }
+    };
+
+    const currentConfig = planConfig[interval] || planConfig[1];
+
+    // Atualiza label do modal
+    const labelEl = document.getElementById('currentPlanLabel');
+    if(labelEl) labelEl.innerText = currentConfig.label;
+
+    // Atualiza Ícone no Header (Feedback Visual)
+    const indicatorEl = document.getElementById('activePlanIcon');
+    if(indicatorEl) {
+        indicatorEl.innerHTML = currentConfig.icon;
+        indicatorEl.title = `Modo Atual: ${currentConfig.label}`;
+    }
 
     // Achar data do último verso inserido
     let lastDate = null;
@@ -182,11 +211,6 @@ function updatePacingUI() {
         const sorted = [...appData.verses].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
         lastDate = new Date(sorted[0].startDate + 'T00:00:00');
     }
-
-    // Atualiza label do modal
-    const labels = { 1: "Diário", 2: "Alternado", 3: "Bíblico/Zen" };
-    const labelEl = document.getElementById('currentPlanLabel');
-    if(labelEl) labelEl.innerText = labels[interval] || "Personalizado";
 
     // Se não há versículos, está liberado
     if (!lastDate) {
