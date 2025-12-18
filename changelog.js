@@ -1,6 +1,16 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.4",
+        date: "2025-12-18",
+        title: "Harmonia Visual & Modo Leve",
+        changes: [
+            "🪶 <b>Modo Leve & Ícones:</b> Renomeamos o 'Modo Zen' para 'Modo Leve' e substituímos os emojis antigos por ícones vetoriais (SVG) de alta definição no seletor de planos.",
+            "👁️ <b>Feedback Visual de Ritmo:</b> Adicionamos um indicador discreto no header (canto superior esquerdo do botão) que mostra o ícone do plano atual sem precisar abrir o menu.",
+            "✨ <b>Refinamento UI:</b> O badge de 'Dias Seguidos' (Streak) perdeu o fundo preto pesado e ganhou um visual minimalista e elegante, mais integrado ao design do sistema."
+        ]
+    },
+    {
         version: "1.0.3",
         date: "2025-12-18",
         title: "Previsão Inteligente & Refinamento UI",
