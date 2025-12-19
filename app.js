@@ -17,10 +17,10 @@ window.onload = function() {
     initChangelog();
     loadFromStorage();
     
-    // Define data de hoje
+    // Define data de hoje (DATA LOCAL, NÃO UTC)
     const today = new Date();
     const startDateInput = document.getElementById('startDate');
-    if(startDateInput) startDateInput.valueAsDate = today;
+    if(startDateInput) startDateInput.value = getLocalDateISO(today);
     
     // Listeners para o Painel de Previsão (Reatividade)
     const refInput = document.getElementById('ref');
@@ -33,7 +33,7 @@ window.onload = function() {
     updateTable();
     updateRadar();      
     updatePacingUI();
-    renderDashboard(); // <--- INICIA O DASHBOARD NO CARREGAMENTO
+    renderDashboard(); // <--- INICIA O DASHBOARD VISÍVEL
 };
 
 function saveToStorage() {
@@ -56,6 +56,16 @@ function loadFromStorage() {
 }
 
 // --- 2. LÓGICA DE NEUROAPRENDIZAGEM (SRS) ---
+
+// FUNÇÃO CRÍTICA PARA CORRIGIR FUSO HORÁRIO
+// Gera 'YYYY-MM-DD' baseado no horário local do usuário, não UTC.
+function getLocalDateISO(dateObj) {
+    if(!dateObj) return '';
+    const offset = dateObj.getTimezoneOffset() * 60000;
+    const localTime = new Date(dateObj.getTime() - offset);
+    return localTime.toISOString().split('T')[0];
+}
+
 function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
     
@@ -64,18 +74,18 @@ function calculateSRSDates(startDateStr) {
     const intervals = [0, 1, 3, 7, 14, 21, 30, 60];
     
     const dates = [];
-    const start = new Date(startDateStr + 'T00:00:00'); 
+    const start = new Date(startDateStr + 'T00:00:00'); // Força interpretação local
 
     intervals.forEach(days => {
         const d = new Date(start);
         d.setDate(d.getDate() + days);
-        dates.push(formatDateISOSimple(d));
+        dates.push(getLocalDateISO(d)); // Usa a função segura de fuso
     });
     return dates;
 }
 
 function formatDateISOSimple(date) {
-    return date.toISOString().split('T')[0];
+    return getLocalDateISO(date); // Atualizado para usar função segura
 }
 
 // --- 3. LÓGICA DO RADAR & INTERATIVIDADE ---
@@ -109,9 +119,8 @@ function updateRadar() {
         });
     }
 
-    // C. Verificação de Carga de HOJE para Notificação no Botão
-    const today = new Date();
-    const todayStr = formatDateISOSimple(today);
+    // C. Verificação de Carga de HOJE
+    const todayStr = getLocalDateISO(new Date());
     const todayLoad = loadMap[todayStr] || 0;
     
     const radarBtn = document.getElementById('btnRadar');
@@ -126,10 +135,11 @@ function updateRadar() {
     }
 
     // D. Renderizar 63 dias (9 semanas completas)
+    const today = new Date();
     for (let i = 0; i < 63; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() + i);
-        const dateStr = formatDateISOSimple(d);
+        const dateStr = getLocalDateISO(d);
         const count = loadMap[dateStr] || 0;
 
         const cell = document.createElement('div');
@@ -163,22 +173,23 @@ function updateRadar() {
 // --- NOVAS FUNÇÕES: PACING, STREAK & PREVIEW ---
 
 function checkStreak() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO(new Date());
     
     if (!appData.stats) appData.stats = { streak: 0, lastLogin: null };
     
     const lastLogin = appData.stats.lastLogin;
     
     if (lastLogin !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayStr = getLocalDateISO(yesterdayDate);
 
         if (lastLogin === yesterdayStr) {
             appData.stats.streak++;
-        } else {
-            appData.stats.streak = 1;
+        } else if (lastLogin < yesterdayStr) {
+            appData.stats.streak = 1; // Quebrou o streak se perdeu um dia
         }
+        // Se for 1º login do dia, apenas atualiza. Se for mesmo dia, não faz nada.
         
         appData.stats.lastLogin = today;
         saveToStorage();
@@ -480,7 +491,7 @@ function findNextLightDay(dateStr) {
     
     // Loop de segurança (tenta até 30 dias para frente)
     for(let i=0; i<30; i++) {
-        const iso = current.toISOString().split('T')[0];
+        const iso = getLocalDateISO(current);
         if ((loadMap[iso] || 0) < limit) {
             return iso;
         }
@@ -524,7 +535,7 @@ function generateICSFile(verseData, dates) {
         const dtStart = dateStr.replace(/-/g, '');
         const dEnd = new Date(dateStr + 'T00:00:00');
         dEnd.setDate(dEnd.getDate() + 1);
-        const dtEnd = formatDateISOSimple(dEnd).replace(/-/g, '');
+        const dtEnd = getLocalDateISO(dEnd).replace(/-/g, '');
 
         const summary = `NeuroBible: ${verseData.ref} (Rev ${index+1})`;
 
@@ -623,25 +634,25 @@ function renderDashboard() {
     const countEl = document.getElementById('todayCount');
     if(!dash || !list) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateISO(new Date()); // USA DATA SEGURA
     
     // Filtra versículos que têm revisão HOJE
     const todayVerses = appData.verses.filter(v => v.dates.includes(todayStr));
 
-    if(todayVerses.length === 0) {
-        dash.style.display = 'none'; // Esconde se não tiver nada
-        return;
-    }
-
+    // MOSTRAR SEMPRE, MESMO VAZIO (Para validar o layout)
     dash.style.display = 'block';
     countEl.innerText = todayVerses.length;
     
-    list.innerHTML = todayVerses.map(v => `
-        <div class="dash-item" onclick="startFlashcardFromDash(${v.id})">
-            <strong>${v.ref}</strong>
-            <small style="color:var(--accent)">▶ Treinar</small>
-        </div>
-    `).join('');
+    if(todayVerses.length === 0) {
+        list.innerHTML = `<div class="dash-empty-state">✨ Tudo em dia! Nenhuma revisão pendente para hoje.</div>`;
+    } else {
+        list.innerHTML = todayVerses.map(v => `
+            <div class="dash-item" onclick="startFlashcardFromDash(${v.id})">
+                <strong>${v.ref}</strong>
+                <small style="color:var(--accent)">▶ Treinar</small>
+            </div>
+        `).join('');
+    }
 }
 
 // Wrapper para abrir o flashcard direto do dashboard
