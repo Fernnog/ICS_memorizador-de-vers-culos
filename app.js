@@ -1,3 +1,6 @@
+// app.js
+// ARQUITETO: Versão Consolidada com Sync Realtime e Exclusão Cloud
+
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
     verses: [], // { id, ref, text, startDate, dates: [] }
@@ -7,46 +10,45 @@ let appData = {
 
 window.onload = function() {
     // --- 0. REGISTRO DO SERVICE WORKER (PWA) ---
-    // Ativa o funcionamento offline e instalação
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./service-worker.js')
             .then(reg => console.log('SW registrado com sucesso:', reg.scope))
             .catch(err => console.error('Falha ao registrar SW:', err));
     }
 
-    initChangelog();
+    if (window.initChangelog) initChangelog();
     loadFromStorage();
-    
-    // Define data de hoje
+
+    // Define data de hoje no input
     const today = new Date();
     const startDateInput = document.getElementById('startDate');
     if(startDateInput) startDateInput.valueAsDate = today;
-    
+
     // Listeners para o Painel de Previsão (Reatividade)
     const refInput = document.getElementById('ref');
-    
     if(startDateInput) startDateInput.addEventListener('change', updatePreviewPanel);
     if(refInput) refInput.addEventListener('input', updatePreviewPanel);
 
     // Inicializações de Lógica
-    checkStreak();      
+    checkStreak();
     updateTable();
-    updateRadar();      
-    updatePacingUI();   
+    updateRadar();
+    updatePacingUI();
 };
 
+// --- GESTÃO DE ARMAZENAMENTO LOCAL (Persistência Offline) ---
 function saveToStorage() {
     localStorage.setItem('neuroBibleData', JSON.stringify(appData));
-    updateRadar(); // Mantém o radar sincronizado
+    // updateRadar(); // Removido para evitar redundância, updateRadar é chamado nas ações
 }
 
 function loadFromStorage() {
     const data = localStorage.getItem('neuroBibleData');
     if (data) {
         const parsed = JSON.parse(data);
-        // Merge para garantir que usuários antigos recebam os novos campos
-        appData = { 
-            ...appData, 
+        // Merge para garantir compatibilidade de versões
+        appData = {
+            ...appData,
             ...parsed,
             settings: parsed.settings || { planInterval: 1 },
             stats: parsed.stats || { streak: 0, lastLogin: null }
@@ -57,13 +59,10 @@ function loadFromStorage() {
 // --- 2. LÓGICA DE NEUROAPRENDIZAGEM (SRS) ---
 function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
-    
-    // ATUALIZAÇÃO v1.0.6: Inclusão do índice '0' para considerar o dia atual (Aprendizado)
-    // Sequência: Hoje, Amanhã, 3 dias, 7 dias, etc.
+    // Sequência: Hoje (0), Amanhã (1), 3, 7, 14, 21, 30, 60
     const intervals = [0, 1, 3, 7, 14, 21, 30, 60];
-    
     const dates = [];
-    const start = new Date(startDateStr + 'T00:00:00'); 
+    const start = new Date(startDateStr + 'T00:00:00');
 
     intervals.forEach(days => {
         const d = new Date(start);
@@ -81,34 +80,35 @@ function formatDateISOSimple(date) {
 function updateRadar() {
     const grid = document.getElementById('calendarGrid');
     if (!grid) return;
-    
-    grid.innerHTML = '';
 
+    grid.innerHTML = '';
     const startDateEl = document.getElementById('startDate');
     const startDateInput = startDateEl ? startDateEl.value : null;
-    
+
     // Só calcula preview se tiver data válida
     const currentPreviewDates = startDateInput ? calculateSRSDates(startDateInput) : [];
     const loadMap = {};
 
     // A. Somar Carga Histórica
     appData.verses.forEach(v => {
-        v.dates.forEach(d => {
-            loadMap[d] = (loadMap[d] || 0) + 1;
-        });
+        if(v.dates) {
+            v.dates.forEach(d => {
+                loadMap[d] = (loadMap[d] || 0) + 1;
+            });
+        }
     });
 
-    // B. Somar Carga Preview
+    // B. Somar Carga Preview (se houver input)
     const refEl = document.getElementById('ref');
     const isPreviewActive = refEl && refEl.value.trim() !== "";
-    
+
     if (isPreviewActive) {
         currentPreviewDates.forEach(d => {
             loadMap[d] = (loadMap[d] || 0) + 1;
         });
     }
 
-    // C. Verificação de Carga de HOJE para Notificação no Botão
+    // C. Verificação de Carga de HOJE
     const today = new Date();
     const todayStr = formatDateISOSimple(today);
     const todayLoad = loadMap[todayStr] || 0;
@@ -124,7 +124,7 @@ function updateRadar() {
         }
     }
 
-    // D. Renderizar 63 dias (9 semanas completas)
+    // D. Renderizar 63 dias
     for (let i = 0; i < 63; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() + i);
@@ -133,17 +133,21 @@ function updateRadar() {
 
         const cell = document.createElement('div');
         cell.className = 'day-cell';
-        
-        // INTERATIVIDADE DO FLASHCARD
+
+        // Interatividade da Célula
         if (count > 0) {
             cell.style.cursor = 'pointer';
             cell.onclick = () => {
-                closeRadarModal(); // Fecha o radar para focar na revisão
+                // Se o modal do radar estiver aberto, fecha ele
+                if(document.getElementById('radarModal').style.display === 'flex'){
+                    closeRadarModal();
+                }
                 openDailyReview(dateStr);
             };
             cell.title = `${count} versículos para revisar`;
         }
-        
+
+        // Classes de Carga (Heatmap)
         if (count === 0) cell.classList.add('load-0');
         else if (count <= 2) cell.classList.add('load-low');
         else if (count <= 5) cell.classList.add('load-med');
@@ -154,20 +158,22 @@ function updateRadar() {
         }
 
         const dayLabel = d.getDate().toString().padStart(2, '0');
-        cell.innerHTML = `<span>${dayLabel}</span><strong>${count > 0 ? count : ''}</strong>`;
+        // Se for hoje, destaca visualmente
+        if (i === 0) cell.style.border = "1px solid #fff";
+
+        cell.innerHTML = `${dayLabel}
+**${count > 0 ? count : ''}**`;
         grid.appendChild(cell);
     }
 }
 
-// --- NOVAS FUNÇÕES: PACING, STREAK & PREVIEW ---
-
+// --- 4. FUNÇÕES DE CONSTÂNCIA E RITMO ---
 function checkStreak() {
     const today = new Date().toISOString().split('T')[0];
-    
     if (!appData.stats) appData.stats = { streak: 0, lastLogin: null };
-    
+
     const lastLogin = appData.stats.lastLogin;
-    
+
     if (lastLogin !== today) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -176,61 +182,50 @@ function checkStreak() {
         if (lastLogin === yesterdayStr) {
             appData.stats.streak++;
         } else {
-            appData.stats.streak = 1;
+            // Reset streak se pulou um dia (exceto se for o primeiro uso)
+            if(lastLogin) appData.stats.streak = 1;
+            else appData.stats.streak = 1; 
         }
-        
+
         appData.stats.lastLogin = today;
         saveToStorage();
     }
-    
+
     const badge = document.getElementById('streakBadge');
     if(badge) badge.innerText = `🔥 ${appData.stats.streak}`;
 }
 
-// Refatoração: Simplificação visual e Injeção de Ícone de Feedback
 function updatePacingUI() {
     const btn = document.getElementById('btnPacing');
     if(!btn) return;
-    
+
     const interval = appData.settings?.planInterval || 1;
-
-    // Configuração dos Planos (SVG + Labels)
+    
+    // Configs Visuais
     const planConfig = {
-        1: { 
-            label: "Diário", 
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' 
-        },
-        2: { 
-            label: "Alternado", 
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>' 
-        },
-        3: { 
-            label: "Modo Leve", 
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>' 
-        }
+        1: { label: "Diário", icon: '🐰' },
+        2: { label: "Alternado", icon: '🐢' },
+        3: { label: "Modo Leve", icon: '🐌' }
     };
-
     const currentConfig = planConfig[interval] || planConfig[1];
 
-    // Atualiza label do modal
     const labelEl = document.getElementById('currentPlanLabel');
     if(labelEl) labelEl.innerText = currentConfig.label;
 
-    // Atualiza Ícone no Header (Feedback Visual)
     const indicatorEl = document.getElementById('activePlanIcon');
     if(indicatorEl) {
         indicatorEl.innerHTML = currentConfig.icon;
         indicatorEl.title = `Modo Atual: ${currentConfig.label}`;
     }
 
-    // Achar data do último verso inserido
+    // Lógica de Bloqueio (Pacing)
     let lastDate = null;
     if (appData.verses.length > 0) {
+        // Ordena para pegar o mais recente
         const sorted = [...appData.verses].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
         lastDate = new Date(sorted[0].startDate + 'T00:00:00');
     }
 
-    // Se não há versículos, está liberado
     if (!lastDate) {
         setPacingState(btn, 'ready');
         return;
@@ -242,11 +237,9 @@ function updatePacingUI() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays >= interval) {
-        // Liberado
         setPacingState(btn, 'ready');
         btn.title = "Novo versículo liberado! O tempo de plantar chegou.";
     } else {
-        // Bloqueado
         const remaining = interval - diffDays;
         setPacingState(btn, 'blocked');
         btn.title = `Aguarde ${remaining} dia(s). O descanso faz parte do plano.`;
@@ -258,11 +251,9 @@ function setPacingState(btn, state) {
     btn.classList.add(`is-${state}`);
 }
 
-// NOVA FUNÇÃO: Lógica do Painel de Previsão e Alerta de Carga
 function updatePreviewPanel() {
     const dateEl = document.getElementById('startDate');
     const refEl = document.getElementById('ref');
-    
     if(!dateEl || !refEl) return;
 
     const dateInput = dateEl.value;
@@ -270,16 +261,15 @@ function updatePreviewPanel() {
     const panel = document.getElementById('previewPanel');
     const container = document.getElementById('previewChips');
 
-    // Só mostra se tiver data e pelo menos 3 caracteres na referência
     if (!dateInput || refInput.length < 3) {
         if(panel) panel.style.display = 'none';
-        updateRadar(); // Atualiza radar (limpa preview visual do grid)
+        updateRadar(); 
         return;
     }
 
     const futureDates = calculateSRSDates(dateInput);
     
-    // Calcula carga atual para verificar sobrecarga
+    // Calcula carga para verificar sobrecarga
     const currentLoadMap = {};
     appData.verses.forEach(v => {
         v.dates.forEach(d => {
@@ -294,31 +284,309 @@ function updatePreviewPanel() {
             const d = new Date(dateStr + 'T00:00:00');
             const dayName = d.toLocaleDateString('pt-BR', { weekday: 'short' });
             const formattedDate = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            
-            // Verifica Sobrecarga (High Load > 5 itens existentes)
+
             const load = currentLoadMap[dateStr] || 0;
-            const isOverloaded = load >= 5; 
+            const isOverloaded = load >= 5; // Regra de negócio: > 5 é muito
+            
             const chipClass = isOverloaded ? 'date-chip is-overloaded' : 'date-chip';
             const titleAttr = isOverloaded ? `Sobrecarga! Dia já tem ${load} revisões.` : `Dia com ${load} revisões.`;
 
-            // Rev + 1 porque index começa em 0
             return `<span class="${chipClass}" title="${titleAttr}">Rev ${index+1}: ${dayName} ${formattedDate}</span>`;
         }).join('');
     }
-
-    // Mantém o radar principal em sincronia
     updateRadar();
 }
 
-// --- UTILITÁRIOS: MODAIS & TOAST ---
+// --- 5. AÇÃO PRINCIPAL: ADICIONAR VERSÍCULO ---
+window.processAndGenerate = function() {
+    // 1. Verificação de Bloqueio
+    const btn = document.getElementById('btnPacing');
+    if (btn && btn.classList.contains('is-blocked')) {
+        btn.style.transform = "scale(1.1)";
+        setTimeout(() => btn.style.transform = "scale(1)", 200);
+        const interval = appData.settings?.planInterval || 1;
+        showToast(`O descanso é um princípio bíblico. Aguarde o ciclo (${interval} dias).`, 'warning');
+        return;
+    }
 
-window.openPlanModal = function() { 
-    document.getElementById('planModal').style.display = 'flex'; 
-    updatePacingUI(); 
+    const ref = document.getElementById('ref').value.trim();
+    const text = document.getElementById('text').value.trim();
+    const startDate = document.getElementById('startDate').value;
+
+    if (!ref || !startDate) {
+        showToast("Preencha Referência e Data.", "error");
+        return;
+    }
+
+    const reviewDates = calculateSRSDates(startDate);
+
+    const newVerse = {
+        id: Date.now(),
+        ref: ref,
+        text: text,
+        startDate: startDate,
+        dates: reviewDates
+    };
+
+    // Atualiza Local
+    appData.verses.push(newVerse);
+    saveToStorage();
+
+    // Sincroniza Nuvem (Se disponível)
+    if (window.saveVerseToFirestore) {
+        window.saveVerseToFirestore(newVerse);
+    }
+
+    // UI Updates
+    updateTable();
+    updateRadar();
+    updatePacingUI();
+    generateICSFile(newVerse, reviewDates);
+
+    // Reset Inputs
+    document.getElementById('ref').value = '';
+    document.getElementById('text').value = '';
+    updatePreviewPanel();
+    
+    showToast(`"${ref}" agendado com sucesso!`, 'success');
 };
 
-window.closePlanModal = function() { 
-    document.getElementById('planModal').style.display = 'none'; 
+// --- 6. GERADOR ICS (Calendário) ---
+function generateICSFile(verseData, dates) {
+    const uidBase = verseData.id;
+    const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+    let icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//NeuroBible//SRS Manager//PT',
+        'CALSCALE:GREGORIAN'
+    ].join('
+');
+
+    const clozeText = generateClozeText(verseData.text);
+    const rawDescription = 
+        `🧠 DESAFIO (Recuperação Ativa)
+Complete mentalmente:
+
+"${clozeText}"
+
+` +
+        `.
+.
+.
+.
+👇 Role para a resposta
+.
+.
+.
+` + 
+        `📖 RESPOSTA:
+${verseData.text}`;
+    
+    const description = escapeICS(rawDescription);
+
+    dates.forEach((dateStr, index) => {
+        const dtStart = dateStr.replace(/-/g, '');
+        const dEnd = new Date(dateStr + 'T00:00:00');
+        dEnd.setDate(dEnd.getDate() + 1);
+        const dtEnd = formatDateISOSimple(dEnd).replace(/-/g, '');
+        
+        const summary = `NeuroBible: ${verseData.ref} (Rev ${index+1})`;
+
+        const eventBlock = [
+            'BEGIN:VEVENT',
+            `UID:${uidBase}-${index}@neurobible.app`,
+            `DTSTAMP:${dtStamp}`,
+            `DTSTART;VALUE=DATE:${dtStart}`,
+            `DTEND;VALUE=DATE:${dtEnd}`,
+            `SUMMARY:${summary}`,
+            `DESCRIPTION:${description}`,
+            'END:VEVENT'
+        ].join('
+');
+
+        icsContent += '
+' + eventBlock;
+    });
+
+    icsContent += '
+END:VCALENDAR';
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const safeName = verseData.ref.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    link.download = `plano_estudo_${safeName}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function escapeICS(str) {
+    if (!str) return '';
+    return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/
+/g, '\
+');
+}
+
+// --- 7. SISTEMA DE REVISÃO (Flashcards) ---
+function openDailyReview(dateStr) {
+    const versesToReview = appData.verses.filter(v => v.dates && v.dates.includes(dateStr));
+    
+    if (versesToReview.length === 0) return;
+
+    const listContainer = document.getElementById('reviewList');
+    const title = document.getElementById('reviewTitle');
+
+    document.getElementById('radarModal').style.display = 'none'; // Garante fechar o radar
+    document.getElementById('reviewModal').style.display = 'flex';
+    document.getElementById('reviewListContainer').style.display = 'block';
+    document.getElementById('flashcardContainer').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    title.innerText = `Revisão: ${dateObj.toLocaleDateString('pt-BR')}`;
+
+    listContainer.innerHTML = versesToReview.map(v => `
+        <div class="review-item" onclick="startFlashcard(${v.id})">
+            <span>${v.ref}</span>
+            <span style="font-size:0.8em; color:#666">Toque para revisar</span>
+        </div>
+    `).join('');
+}
+
+window.startFlashcard = function(id) {
+    const verse = appData.verses.find(v => v.id === id);
+    if(!verse) return;
+
+    document.getElementById('reviewListContainer').style.display = 'none';
+    document.getElementById('flashcardContainer').style.display = 'flex';
+
+    document.getElementById('fcFrontText').innerText = verse.ref;
+    
+    // Gera Cloze (Lacunas) para o verso
+    const cloze = generateClozeText(verse.text);
+    document.getElementById('fcBackRef').innerText = verse.ref;
+    document.getElementById('fcBackText').innerHTML = `
+        <p style="color:#e67e22; font-weight:bold; margin-bottom:10px;">Complete:</p>
+        <p>${cloze}</p>
+        <hr style="margin:15px 0; border:0; border-top:1px solid #eee">
+        <p style="color:#27ae60; font-weight:bold;">Resposta:</p>
+        <p>${verse.text}</p>
+    `;
+};
+
+window.flipCard = function() {
+    document.getElementById('flashcardInner').classList.toggle('is-flipped');
+};
+
+window.closeReviewModal = function() {
+    document.getElementById('reviewModal').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+};
+
+function generateClozeText(text) {
+    if(!text) return "";
+    const words = text.split(' ');
+    return words.map(word => {
+        const cleanWord = word.replace(/[.,;!?]/g, '');
+        // Oculta palavras com mais de 3 letras aleatoriamente (60% chance)
+        if (cleanWord.length > 3 && Math.random() > 0.4) {
+            return "______";
+        }
+        return word;
+    }).join(' ');
+}
+
+// --- 8. GERENCIAMENTO DE TABELA E EXCLUSÃO (Prioridade 1) ---
+
+window.updateTable = function() {
+    const container = document.getElementById('versesList'); // Ajuste conforme seu HTML real (tbody ou div)
+    if (!container) return;
+
+    // Se a lista estiver vazia
+    if (appData.verses.length === 0) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:#999">Nenhum versículo cadastrado ainda.</div>';
+        return;
+    }
+
+    // Ordena por data de criação (mais novos primeiro)
+    const sortedVerses = [...appData.verses].sort((a,b) => b.id - a.id);
+
+    // Gera HTML da lista/tabela
+    container.innerHTML = sortedVerses.map(v => `
+        <div class="verse-card">
+            <div class="verse-header">
+                <strong>${v.ref}</strong>
+                <span style="font-size:0.8rem; color:#666">${new Date(v.startDate).toLocaleDateString('pt-BR')}</span>
+            </div>
+            <div class="verse-body">
+                ${v.text ? v.text.substring(0, 50) + (v.text.length > 50 ? '...' : '') : ''}
+            </div>
+            <div class="verse-actions">
+                <button onclick="deleteVerse(${v.id})" class="btn-delete" title="Excluir Permanentemente">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+};
+
+/**
+ * Função de Exclusão (Atualizada para Firebase - Prioridade 1)
+ */
+window.deleteVerse = function(id) {
+    if (confirm('Tem certeza que deseja excluir? Isso removerá o versículo de todos os seus dispositivos.')) {
+        // 1. Remove do Estado Local
+        appData.verses = appData.verses.filter(v => v.id !== id);
+        
+        // 2. Salva Estado Local
+        saveToStorage();
+        
+        // 3. Atualiza UI
+        updateTable();
+        updateRadar();
+        updatePacingUI();
+        
+        // 4. Remove da Nuvem (Firebase)
+        if (window.deleteVerseFromFirestore) {
+            window.deleteVerseFromFirestore(id);
+        }
+        
+        showToast('Versículo excluído.', 'warning');
+    }
+};
+
+// --- 9. SINCRONIZAÇÃO EM TEMPO REAL (Prioridade 3) ---
+
+/**
+ * Esta função é chamada pelo firebase.js via onSnapshot
+ * sempre que houver mudança no banco de dados.
+ */
+window.handleRemoteUpdate = function(cloudVerses) {
+    console.log("Recebendo atualização da nuvem...", cloudVerses);
+    
+    // Atualiza o estado local com a verdade da nuvem
+    appData.verses = cloudVerses;
+    
+    // Persiste e Atualiza UI
+    saveToStorage();
+    updateTable();
+    updateRadar();
+    updatePacingUI();
+    
+    // Feedback visual discreto (opcional)
+    // showToast('Sincronizado.', 'success'); 
+};
+
+// --- 10. UTILITÁRIOS GERAIS (Modais e Toasts) ---
+
+window.openPlanModal = function() {
+    document.getElementById('planModal').style.display = 'flex';
+    updatePacingUI();
+};
+
+window.closePlanModal = function() {
+    document.getElementById('planModal').style.display = 'none';
 };
 
 window.selectPlan = function(days) {
@@ -333,327 +601,24 @@ window.selectPlan = function(days) {
 window.showToast = function(msg, type = 'success') {
     const box = document.getElementById('toastBox');
     if(!box) return;
-    
+
     const el = document.createElement('div');
     el.className = `toast ${type}`;
-    el.innerHTML = type === 'warning' ? `✋ ${msg}` : (type === 'error' ? `🛑 ${msg}` : `✅ ${msg}`);
+    // Ícones simples para feedback visual
+    const icon = type === 'warning' ? '🗑️' : (type === 'error' ? '🛑' : '✅');
+    el.innerHTML = `${icon} ${msg}`;
     
     box.appendChild(el);
-    
+
+    // Animação de entrada e remoção automática após 3 segundos
     setTimeout(() => {
         el.style.opacity = '0';
         setTimeout(() => el.remove(), 300);
-    }, 4000);
+    }, 3000);
 };
 
-// --- CONTROLE DOS MODAIS EXISTENTES ---
-function openRadarModal() {
-    updateRadar();
-    document.getElementById('radarModal').style.display = 'flex';
-}
-
-function closeRadarModal() {
-    document.getElementById('radarModal').style.display = 'none';
-}
-
-// --- 4. FUNÇÕES NEURO (Active Recall) ---
-function generateClozeText(text) {
-    const words = text.split(' ');
-    return words.map(word => {
-        const cleanWord = word.replace(/[.,;!?]/g, '');
-        if (cleanWord.length > 3 && Math.random() > 0.6) {
-            return "______"; 
-        }
-        return word;
-    }).join(' ');
-}
-
-// --- 5. AÇÃO PRINCIPAL E ICS ---
-window.processAndGenerate = function() {
-    // 1. Verificação de Bloqueio de Ritmo
-    const btn = document.getElementById('btnPacing');
-    if (btn && btn.classList.contains('is-blocked')) {
-        btn.style.transform = "scale(1.1)";
-        setTimeout(() => btn.style.transform = "scale(1)", 200);
-        
-        const interval = appData.settings?.planInterval || 1;
-        showToast(`O descanso é um princípio bíblico. Aguarde o ciclo (${interval} dias).`, 'warning');
-        return; 
-    }
-
-    const ref = document.getElementById('ref').value.trim();
-    const text = document.getElementById('text').value.trim();
-    const startDate = document.getElementById('startDate').value;
-
-    if (!ref || !startDate) {
-        showToast("Preencha Referência e Data.", "error");
-        return;
-    }
-
-    const reviewDates = calculateSRSDates(startDate);
-    const newVerse = {
-        id: Date.now(),
-        ref: ref,
-        text: text,
-        startDate: startDate,
-        dates: reviewDates
-    };
-    appData.verses.push(newVerse);
-    saveToStorage(); // Salva localmente (backup/offline)
-
-    // --- NOVO: CONEXÃO COM A NUVEM ---
-    // Se a função existir (está no firebase.js) e tiver usuário logado, salva na nuvem
-    if (window.saveVerseToFirestore) {
-        window.saveVerseToFirestore(newVerse); 
-    }
-    // ---------------------------------
-
-    updateTable();
-    updateRadar();
-    updatePacingUI(); // Atualiza bloqueio imediatamente
-
-    generateICSFile(newVerse, reviewDates);
-
-    document.getElementById('ref').value = '';
-    document.getElementById('text').value = '';
-    
-    // Atualiza/Limpa o painel de previsão
-    updatePreviewPanel();
-    
-    showToast(`"${ref}" agendado com sucesso!`, 'success');
+// Funções auxiliares finais
+window.toggleTheme = function() {
+    // Placeholder para implementação futura de tema escuro/claro
+    alert("Tema escuro em breve!");
 };
-
-function generateICSFile(verseData, dates) {
-    const uidBase = verseData.id;
-    const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    
-    let icsContent = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//NeuroBible//SRS Manager//PT',
-        'CALSCALE:GREGORIAN'
-    ].join('\r\n');
-
-    const clozeText = generateClozeText(verseData.text);
-    const rawDescription = 
-        `🧠 DESAFIO (Recuperação Ativa)\nComplete mentalmente:\n\n"${clozeText}"\n\n` +
-        `.\n.\n.\n.\n👇 Role para a resposta\n.\n.\n.\n` + 
-        `📖 RESPOSTA:\n${verseData.text}`;
-    
-    const description = escapeICS(rawDescription);
-
-    dates.forEach((dateStr, index) => {
-        const dtStart = dateStr.replace(/-/g, '');
-        const dEnd = new Date(dateStr + 'T00:00:00');
-        dEnd.setDate(dEnd.getDate() + 1);
-        const dtEnd = formatDateISOSimple(dEnd).replace(/-/g, '');
-
-        const summary = `NeuroBible: ${verseData.ref} (Rev ${index+1})`;
-
-        const eventBlock = [
-            'BEGIN:VEVENT',
-            `UID:${uidBase}-${index}@neurobible.app`,
-            `DTSTAMP:${dtStamp}`,
-            `DTSTART;VALUE=DATE:${dtStart}`,
-            `DTEND;VALUE=DATE:${dtEnd}`,
-            `SUMMARY:${summary}`,
-            `DESCRIPTION:${description}`,
-            'END:VEVENT'
-        ].join('\r\n');
-        
-        icsContent += '\r\n' + eventBlock;
-    });
-
-    icsContent += '\r\nEND:VCALENDAR';
-
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    const safeName = verseData.ref.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    link.download = `plano_estudo_${safeName}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function escapeICS(str) {
-    if (!str) return '';
-    return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-}
-
-// --- 6. SISTEMA DE FLASHCARDS / REVIEW ---
-function openDailyReview(dateStr) {
-    const versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
-    
-    if (versesToReview.length === 0) return;
-
-    const modal = document.getElementById('reviewModal');
-    const listContainer = document.getElementById('reviewList');
-    const title = document.getElementById('reviewTitle');
-    
-    document.getElementById('reviewListContainer').style.display = 'block';
-    document.getElementById('flashcardContainer').style.display = 'none';
-    document.getElementById('flashcardInner').classList.remove('is-flipped');
-    
-    const dateObj = new Date(dateStr + 'T00:00:00');
-    title.innerText = `Revisão: ${dateObj.toLocaleDateString('pt-BR')}`;
-
-    listContainer.innerHTML = versesToReview.map(v => `
-        <div class="verse-item" onclick="startFlashcard(${v.id})">
-            <strong>${v.ref}</strong>
-            <span>▶ Treinar</span>
-        </div>
-    `).join('');
-
-    modal.style.display = 'flex';
-}
-
-function startFlashcard(verseId) {
-    const verse = appData.verses.find(v => v.id === verseId);
-    if (!verse) return;
-
-    document.getElementById('reviewListContainer').style.display = 'none';
-    document.getElementById('flashcardContainer').style.display = 'block';
-    
-    document.getElementById('cardRef').innerText = verse.ref;
-    
-    const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
-    document.getElementById('cardCloze').innerHTML = `"${clozeHTML}"`;
-    
-    document.getElementById('cardFullText').innerText = verse.text;
-    document.getElementById('flashcardInner').classList.remove('is-flipped');
-}
-
-window.flipCard = function() {
-    document.getElementById('flashcardInner').classList.toggle('is-flipped');
-};
-
-window.backToList = function() {
-    document.getElementById('reviewListContainer').style.display = 'block';
-    document.getElementById('flashcardContainer').style.display = 'none';
-    document.getElementById('flashcardInner').classList.remove('is-flipped');
-};
-
-window.closeReview = function() {
-    document.getElementById('reviewModal').style.display = 'none';
-};
-
-// --- 7. CHANGELOG & UTILITÁRIOS ---
-function updateTable() {
-    const tbody = document.querySelector('#historyTable tbody');
-    if(!tbody) return;
-    
-    const countEl = document.getElementById('countDisplay');
-    if(countEl) countEl.innerText = appData.verses.length;
-    
-    tbody.innerHTML = '';
-
-    [...appData.verses].reverse().forEach(v => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${v.ref}</strong></td>
-            <td>${v.startDate.split('-').reverse().join('/')}</td>
-            <td><button class="delete-btn" onclick="deleteVerse(${v.id})">x</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-window.deleteVerse = function(id) {
-    if(confirm('Remover este versículo?')) {
-        appData.verses = appData.verses.filter(v => v.id !== id);
-        saveToStorage();
-        updateTable();
-        updateRadar();
-        updatePacingUI();
-    }
-};
-
-window.clearData = function() {
-    if(confirm('Limpar TUDO? (Isso resetará seus planos e streaks)')) {
-        appData.verses = [];
-        appData.settings = { planInterval: 1 };
-        appData.stats = { streak: 0, lastLogin: null };
-        saveToStorage();
-        updateTable();
-        updateRadar();
-        updatePacingUI();
-        checkStreak(); 
-    }
-};
-
-window.exportData = function() {
-    const blob = new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `backup_neurobible_${new Date().toISOString().slice(0,10)}.json`;
-    link.click();
-};
-
-window.importData = function(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const parsed = JSON.parse(e.target.result);
-            appData = { 
-                ...appData, 
-                ...parsed 
-            };
-            saveToStorage();
-            updateTable();
-            updateRadar();
-            updatePacingUI();
-            checkStreak();
-            showToast("Backup restaurado com sucesso!", "success");
-        } catch (err) { 
-            showToast("Erro ao ler arquivo de backup.", "error"); 
-        }
-    };
-    reader.readAsText(file);
-};
-
-function initChangelog() {
-    const latest = window.neuroChangelog ? window.neuroChangelog[0] : { version: '0.0.0' };
-    const versionEl = document.getElementById('currentVersion');
-    if(versionEl) versionEl.innerText = `v${latest.version}`;
-}
-
-window.openChangelog = function() {
-    const modal = document.getElementById('changelogModal');
-    const body = document.getElementById('changelogBody');
-    if (!window.neuroChangelog) return;
-
-    body.innerHTML = window.neuroChangelog.map(log => `
-        <div class="changelog-item">
-            <span class="changelog-date">${log.date}</span>
-            <span class="changelog-title">v${log.version} - ${log.title}</span>
-            <ul class="changelog-ul">${log.changes.map(c => `<li>${c}</li>`).join('')}</ul>
-        </div>
-    `).join('');
-    modal.style.display = 'flex';
-};
-
-window.closeChangelog = function() {
-    document.getElementById('changelogModal').style.display = 'none';
-};
-
-window.updateRadar = updateRadar;
-
-// --- SINCRONIZAÇÃO INICIAL (FIREBASE) ---
-if (window.loadVersesFromFirestore) {
-    setTimeout(() => {
-        if (typeof auth !== 'undefined' && auth.currentUser) {
-            window.loadVersesFromFirestore((cloudVerses) => {
-                if (cloudVerses && cloudVerses.length > 0) {
-                    appData.verses = cloudVerses;
-                    saveToStorage();
-                    updateTable();
-                    updateRadar();
-                    showToast('Dados sincronizados da nuvem!', 'success');
-                }
-            });
-        }
-    }, 2000); 
-}
