@@ -1,16 +1,14 @@
 // firebase.js
-// ARQUITETO: Atualizado para suportar Exclusão Real e Sincronização em Tempo Real (onSnapshot)
 
-// 1. CONFIGURAÇÃO
-// Verifique se estes dados estão iguais aos do seu Console Firebase
+// 1. CONFIGURAÇÃO (Prioridade 2: Preencha com seus dados do Console Firebase)
 const firebaseConfig = {
-    apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
-    authDomain: "neurobible-5b44f.firebaseapp.com",
-    projectId: "neurobible-5b44f",
-    storageBucket: "neurobible-5b44f.firebasestorage.app",
-    messagingSenderId: "1050657162706",
-    appId: "1:1050657162706:web:03d8101b6b6e15d92bf40b",
-    measurementId: "G-P92Z7DFW7N"
+  apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
+  authDomain: "neurobible-5b44f.firebaseapp.com",
+  projectId: "neurobible-5b44f",
+  storageBucket: "neurobible-5b44f.firebasestorage.app",
+  messagingSenderId: "1050657162706",
+  appId: "1:1050657162706:web:03d8101b6b6e15d92bf40b",
+  measurementId: "G-P92Z7DFW7N"
 };
 
 // Inicializa Firebase apenas se não houver instâncias anteriores
@@ -20,17 +18,16 @@ if (!firebase.apps.length) {
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-let unsubscribeVerses = null; // Variável para controlar a escuta em tempo real
 
-// Habilita persistência offline do Firestore (Suporte Offline Híbrido)
+// Habilita persistência offline do Firestore (Prioridade 3 - Suporte Offline Híbrido)
 db.enablePersistence()
-    .catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.warn('Persistência falhou: Múltiplas abas abertas.');
-        } else if (err.code == 'unimplemented') {
-            console.warn('Navegador não suporta persistência offline.');
-        }
-    });
+  .catch((err) => {
+      if (err.code == 'failed-precondition') {
+          console.warn('Persistência falhou: Múltiplas abas abertas.');
+      } else if (err.code == 'unimplemented') {
+          console.warn('Navegador não suporta persistência offline.');
+      }
+  });
 
 // --- GESTÃO DE AUTENTICAÇÃO ---
 
@@ -45,35 +42,23 @@ auth.onAuthStateChanged(user => {
     if (user) {
         // Usuário LOGADO
         console.log('Firebase: Usuário conectado:', user.email);
-
+        
         // Atualiza UI
         if(dot) dot.style.backgroundColor = '#2ecc71'; // Verde
         if(btnLogout) btnLogout.style.display = 'block';
-        if(authMsg) authMsg.innerHTML = `Logado como: ${user.email}`;
-
+        if(authMsg) authMsg.innerHTML = `Logado como: <strong>${user.email}</strong>`;
+        
         // Limpa campos para segurança visual
         if(emailInput) emailInput.value = '';
         if(passInput) passInput.value = '';
 
-        // Prioridade 3: Inicia Sincronização em Tempo Real
-        // Se a função global de atualização existir no app.js, nós a conectamos
-        if (window.handleRemoteUpdate) {
-            initRealtimeListener(user, window.handleRemoteUpdate);
-        } else {
-            // Fallback: Apenas carrega uma vez se o app.js não estiver pronto para realtime
-             if(window.loadVersesFromFirestore) window.loadVersesFromFirestore(); 
-        }
-
+        // Sincronização Inicial (Prioridade 3)
+        // loadUserVerses(user.uid); 
+        
     } else {
         // Usuário DESLOGADO
         console.log('Firebase: Usuário desconectado');
         
-        // Para de escutar atualizações para economizar dados
-        if (unsubscribeVerses) {
-            unsubscribeVerses();
-            unsubscribeVerses = null;
-        }
-
         if(dot) dot.style.backgroundColor = '#ccc'; // Cinza
         if(btnLogout) btnLogout.style.display = 'none';
         if(authMsg) authMsg.innerText = "Entre para sincronizar seus versículos.";
@@ -117,6 +102,7 @@ window.handleSignUp = function() {
         .then((userCredential) => {
             closeAuthModal();
             showToast('Conta criada! Bem-vindo.', 'success');
+            // Cria documento inicial do usuário se necessário
         })
         .catch((error) => {
             console.error(error);
@@ -132,8 +118,7 @@ window.handleLogout = function() {
         auth.signOut().then(() => {
             closeAuthModal();
             showToast('Você saiu da conta.', 'warning');
-            // Opcional: Recarregar a página para limpar dados da memória visual
-            // location.reload(); 
+            // Opcional: Limpar dados da tela ou manter cache local
         });
     }
 };
@@ -147,85 +132,45 @@ window.closeAuthModal = function() {
     document.getElementById('authModal').style.display = 'none';
 };
 
-// --- LÓGICA FIRESTORE (Prioridades 1 e 3) ---
+// --- LÓGICA FIRESTORE (Prioridade 3 - Preparação) ---
 
 /**
  * Salva ou Atualiza um versículo no Firestore.
+ * Deve ser chamado pelo app.js ao criar/editar.
  */
 window.saveVerseToFirestore = function(verseData) {
     const user = auth.currentUser;
-    if (!user) return; 
+    if (!user) return; // Se offline/deslogado, app.js mantém apenas no LocalStorage
 
     db.collection('users').doc(user.uid).collection('verses').doc(String(verseData.id))
-        .set(verseData, { merge: true }) // merge: true é mais seguro para atualizações parciais
-        .then(() => {
-            console.log('Versículo sincronizado na nuvem.');
-        })
-        .catch((err) => {
-            console.error('Erro ao salvar na nuvem:', err);
-        });
+      .set(verseData)
+      .then(() => {
+          console.log('Versículo sincronizado na nuvem.');
+      })
+      .catch((err) => {
+          console.error('Erro ao salvar na nuvem:', err);
+      });
 };
 
 /**
- * [NOVO] Remove um versículo do Firestore (Prioridade 1).
- * Essa função garante que o item não volte ao recarregar a página.
+ * Carrega versículos do Firestore.
+ * Pode ser chamado ao logar ou ao iniciar o app.
  */
-window.deleteVerseFromFirestore = function(verseId) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const docId = String(verseId); // Garante que o ID seja string
-
-    db.collection('users').doc(user.uid).collection('verses').doc(docId)
-        .delete()
-        .then(() => {
-            console.log(`Versículo ${docId} removido permanentemente da nuvem.`);
-        })
-        .catch((err) => {
-            console.error('Erro ao remover da nuvem:', err);
-            showToast('Erro ao excluir do backup online.', 'error');
-        });
-};
-
-/**
- * [ATUALIZADO] Listener em Tempo Real (Prioridade 3).
- * Substitui o antigo 'loadVersesFromFirestore' por um sistema ativo.
- * @param {Object} user - O objeto de usuário do Firebase
- * @param {Function} callback - Função do app.js que vai receber a lista atualizada
- */
-function initRealtimeListener(user, callback) {
-    // Se já existe um listener, cancela o anterior para evitar duplicidade
-    if (unsubscribeVerses) {
-        unsubscribeVerses();
-    }
-
-    // Inicia a escuta (.onSnapshot)
-    unsubscribeVerses = db.collection('users').doc(user.uid).collection('verses')
-        .onSnapshot((querySnapshot) => {
-            const cloudVerses = [];
-            querySnapshot.forEach((doc) => {
-                cloudVerses.push(doc.data());
-            });
-            
-            console.log(`Sincronização Realtime: ${cloudVerses.length} versículos recebidos.`);
-            
-            // Chama a função do app.js para atualizar a tela
-            if (callback) callback(cloudVerses);
-        }, (error) => {
-            console.error("Erro na sincronização realtime:", error);
-            // IMPORTANTE: Erros de permissão cairão aqui se as Regras do Firestore não permitirem leitura
-        });
-}
-
-// Mantendo compatibilidade com versões anteriores (caso app.js ainda use o método antigo)
 window.loadVersesFromFirestore = function(callback) {
     const user = auth.currentUser;
     if (!user) return;
-    
-    // Redireciona para o novo sistema se houver callback, senão tenta usar o global
-    if (callback) {
-        initRealtimeListener(user, callback);
-    } else if (window.handleRemoteUpdate) {
-        initRealtimeListener(user, window.handleRemoteUpdate);
-    }
+
+    db.collection('users').doc(user.uid).collection('verses')
+      .get()
+      .then((querySnapshot) => {
+          const cloudVerses = [];
+          querySnapshot.forEach((doc) => {
+              cloudVerses.push(doc.data());
+          });
+          if (callback) callback(cloudVerses);
+      })
+      .catch((err) => {
+          console.error('Erro ao buscar dados:', err);
+          showToast('Erro na sincronização.', 'error');
+      });
 };
