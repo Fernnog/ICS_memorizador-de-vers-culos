@@ -382,7 +382,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .verse-item:hover { background: var(--white); border-color: var(--accent); }
 
 .flashcard {
-    background-color: transparent; width: 100%; height: 320px;
+    background-color: transparent; width: 100%; height: 360px; /* Aumentado ligeiramente para caber controles */
     perspective: 1000px; cursor: pointer; margin-bottom: 15px;
 }
 .flashcard-inner {
@@ -403,6 +403,69 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 .flashcard-front h2 { color: var(--accent); }
 .cloze-text { font-size: 1.2rem; font-style: italic; opacity: 0.8; }
+
+/* --- NOVOS ESTILOS: NEURO UPGRADE --- */
+
+/* Modo Primeira Letra */
+.first-letter-mode {
+    font-family: 'Courier New', monospace; /* Fonte monoespaçada para ritmo */
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: var(--primary);
+    font-size: 1.4rem;
+    line-height: 1.6;
+}
+
+/* Container de Controles da Frente */
+.front-controls {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
+/* Botão de Dica */
+.btn-hint {
+    background: transparent;
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    opacity: 0.8;
+}
+.btn-hint:hover {
+    background: var(--hover-bg);
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+/* Ações de Feedback (Verso) */
+.feedback-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+.btn-feedback {
+    flex: 1; 
+    padding: 12px; 
+    border: none; 
+    border-radius: 8px;
+    color: white; 
+    font-weight: bold; 
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.btn-feedback:hover { transform: scale(1.03); }
+.btn-feedback.hard { background: #e74c3c; } /* Vermelho */
+.btn-feedback.easy { background: #27ae60; } /* Verde */
+
+/* ------------------------------------- */
 
 /* Alerta de Sobrecarga */
 .overload-alert {
