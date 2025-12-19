@@ -559,15 +559,98 @@ function updateTable() {
     });
 }
 
+// --- GESTÃO DE EXCLUSÃO COM UNDO E NUVEM ---
+
+let undoTimer = null;
+let verseBackup = null; // Guarda o versículo temporariamente
+let verseIndexBackup = -1; // Guarda a posição original
+
+// Nova função de exclusão com "Soft Delete"
 window.deleteVerse = function(id) {
-    if(confirm('Remover este versículo?')) {
-        appData.verses = appData.verses.filter(v => v.id !== id);
-        saveToStorage();
-        updateTable();
-        updateRadar();
-        updatePacingUI();
-    }
+    // 1. Se já houver um timer rodando, finaliza o anterior imediatamente
+    if (undoTimer) clearTimeout(undoTimer);
+
+    // 2. Encontra e faz backup do item
+    const index = appData.verses.findIndex(v => v.id === id);
+    if (index === -1) return;
+
+    verseBackup = appData.verses[index];
+    verseIndexBackup = index;
+
+    // 3. Remove VISUALMENTE (Soft Delete)
+    appData.verses.splice(index, 1);
+    updateTable();
+    updateRadar();
+    updatePacingUI();
+    
+    // 4. Mostra Toast com botão de Desfazer
+    showUndoToast(id);
+
+    // 5. Inicia contagem regressiva para "Hard Delete" (Persistência)
+    undoTimer = setTimeout(() => {
+        finalizeDeletion(id);
+    }, 5000); // 5 segundos para arrepender
 };
+
+// Função chamada se o usuário clicar em "Desfazer"
+window.handleUndo = function() {
+    if (!verseBackup) return;
+
+    // Cancela a exclusão permanente
+    clearTimeout(undoTimer);
+    undoTimer = null;
+
+    // Restaura os dados
+    appData.verses.splice(verseIndexBackup, 0, verseBackup);
+    
+    // Atualiza UI
+    updateTable();
+    updateRadar();
+    updatePacingUI();
+    
+    // Limpa backup
+    verseBackup = null;
+    
+    // Feedback
+    const box = document.getElementById('toastBox');
+    if(box) box.innerHTML = ''; // Limpa o toast de undo
+    showToast('Ação desfeita!', 'success');
+};
+
+// Função que efetiva a exclusão (Local + Nuvem)
+function finalizeDeletion(id) {
+    // Agora sim, salvamos o novo estado no LocalStorage
+    saveToStorage(); 
+    
+    // E chamamos o Firebase (que vai decidir se deleta agora ou enfileira)
+    if (window.handleCloudDeletion) {
+        window.handleCloudDeletion(id);
+    }
+    
+    verseBackup = null; // Limpa backup da memória
+    console.log('Exclusão efetivada.');
+}
+
+// Toast Customizado para Undo
+function showUndoToast(id) {
+    const box = document.getElementById('toastBox');
+    if(!box) return;
+    
+    const el = document.createElement('div');
+    el.className = `toast warning`;
+    el.innerHTML = `
+        🗑️ Item excluído. 
+        <button onclick="handleUndo()" class="toast-undo-btn">Desfazer</button>
+    `;
+    
+    box.innerHTML = ''; // Garante apenas 1 toast de undo por vez
+    box.appendChild(el);
+    
+    // Remove visualmente o toast após 5s (sincronizado com o timer)
+    setTimeout(() => {
+        if(el.parentNode) el.remove();
+    }, 5000);
+}
 
 window.clearData = function() {
     if(confirm('Limpar TUDO? (Isso resetará seus planos e streaks)')) {
