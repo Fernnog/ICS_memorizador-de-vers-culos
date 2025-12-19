@@ -62,6 +62,19 @@
         </div>
     </header>
 
+    <div id="todayDashboard" class="dashboard-panel" style="display:none;">
+        <div class="dash-header">
+            <div>
+                <h2>Sua Missão de Hoje</h2>
+                <small>Versículos aguardando revisão ativa</small>
+            </div>
+            <div class="dash-count" id="todayCount">0</div>
+        </div>
+        <div id="todayList" class="dash-list">
+            </div>
+        <hr class="separator-line" style="border: 0; border-top: 1px dashed var(--border); margin: 20px 0;">
+    </div>
+
     <div class="form-grid">
         <div class="form-group">
             <label for="ref">Referência Bíblica</label>
@@ -235,6 +248,22 @@
                 <button class="btn-ghost-danger" style="border: 1px solid var(--border); color: var(--text);" onclick="handleSignUp()">Criar Conta</button>
             </div>
             <button id="btnLogout" class="btn-ghost-danger" style="margin-top: 20px; width: 100%; display: none;" onclick="handleLogout()">Sair da Conta</button>
+        </div>
+    </div>
+</div>
+
+<div id="conflictModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="color:#e74c3c">⚠️ Sobrecarga Detectada</h3>
+        </div>
+        <p id="conflictMsg">Algumas datas geradas já estão muito cheias.</p>
+        
+        <div class="conflict-actions">
+            <button class="btn-ghost-danger" onclick="closeConflictModal()">Cancelar</button>
+            <button class="btn-main" onclick="confirmSmartReschedule()">
+                ⚡ Otimizar (Mover para dias livres)
+            </button>
         </div>
     </div>
 </div>
