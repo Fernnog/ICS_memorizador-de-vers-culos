@@ -32,7 +32,8 @@ window.onload = function() {
     checkStreak();      
     updateTable();
     updateRadar();      
-    updatePacingUI();   
+    updatePacingUI();
+    renderDashboard(); // <--- INICIA O DASHBOARD NO CARREGAMENTO
 };
 
 function saveToStorage() {
@@ -369,6 +370,9 @@ function generateClozeText(text) {
 }
 
 // --- 5. AÇÃO PRINCIPAL E ICS ---
+
+let pendingVerseData = null; // Armazena dados temporariamente para resolução de conflito
+
 window.processAndGenerate = function() {
     // 1. Verificação de Bloqueio de Ritmo
     const btn = document.getElementById('btnPacing');
@@ -391,6 +395,32 @@ window.processAndGenerate = function() {
     }
 
     const reviewDates = calculateSRSDates(startDate);
+
+    // --- NOVA LÓGICA DE INTERCEPTAÇÃO DE SOBRECARGA ---
+    const overloadLimit = 5; // Limite de itens por dia
+    const loadMap = getCurrentLoadMap();
+    
+    // Verifica se algum dia calculado já excede o limite
+    const congestedDates = reviewDates.filter(d => (loadMap[d] || 0) >= overloadLimit);
+
+    if (congestedDates.length > 0) {
+        // PAUSA TUDO e abre o Modal de Conflito
+        pendingVerseData = { ref, text, startDate, dates: reviewDates };
+        
+        const modal = document.getElementById('conflictModal');
+        const msg = document.getElementById('conflictMsg');
+        msg.innerHTML = `As datas: <b>${congestedDates.map(d=>d.split('-').reverse().slice(0,2).join('/')).join(', ')}</b> já estão cheias.<br><br>Deseja buscar automaticamente os próximos dias livres para equilibrar sua agenda?`;
+        
+        modal.style.display = 'flex';
+        return; // Interrompe o salvamento
+    }
+
+    // Se não houver conflito, salva direto
+    finalizeSave(ref, text, startDate, reviewDates);
+};
+
+// Lógica de Salvamento Final (extraída para ser reusável)
+function finalizeSave(ref, text, startDate, reviewDates) {
     const newVerse = {
         id: Date.now(),
         ref: ref,
@@ -401,16 +431,15 @@ window.processAndGenerate = function() {
     appData.verses.push(newVerse);
     saveToStorage(); // Salva localmente (backup/offline)
 
-    // --- NOVO: CONEXÃO COM A NUVEM ---
-    // Se a função existir (está no firebase.js) e tiver usuário logado, salva na nuvem
+    // Conexão com a Nuvem
     if (window.saveVerseToFirestore) {
         window.saveVerseToFirestore(newVerse); 
     }
-    // ---------------------------------
 
     updateTable();
     updateRadar();
     updatePacingUI(); // Atualiza bloqueio imediatamente
+    renderDashboard(); // Atualiza dashboard se adicionou algo para hoje
 
     generateICSFile(newVerse, reviewDates);
 
@@ -421,8 +450,57 @@ window.processAndGenerate = function() {
     updatePreviewPanel();
     
     showToast(`"${ref}" agendado com sucesso!`, 'success');
+}
+
+// --- LÓGICA DE OTIMIZAÇÃO (Smart Reschedule) ---
+window.confirmSmartReschedule = function() {
+    if(!pendingVerseData) return;
+
+    const optimizedDates = pendingVerseData.dates.map(dateStr => {
+        // Se a data está cheia, procura a próxima livre
+        return findNextLightDay(dateStr);
+    });
+
+    finalizeSave(pendingVerseData.ref, pendingVerseData.text, pendingVerseData.startDate, optimizedDates);
+    
+    document.getElementById('conflictModal').style.display = 'none';
+    showToast('Agenda otimizada com sucesso!', 'success');
 };
 
+window.closeConflictModal = function() {
+    document.getElementById('conflictModal').style.display = 'none';
+    pendingVerseData = null;
+};
+
+// Algoritmo Recursivo para achar dia livre
+function findNextLightDay(dateStr) {
+    const limit = 5;
+    const loadMap = getCurrentLoadMap();
+    let current = new Date(dateStr + 'T00:00:00');
+    
+    // Loop de segurança (tenta até 30 dias para frente)
+    for(let i=0; i<30; i++) {
+        const iso = current.toISOString().split('T')[0];
+        if ((loadMap[iso] || 0) < limit) {
+            return iso;
+        }
+        current.setDate(current.getDate() + 1); // Tenta o dia seguinte
+    }
+    return dateStr; // Fallback (se tudo estiver cheio, mantém o original)
+}
+
+// Auxiliar para pegar mapa de carga
+function getCurrentLoadMap() {
+    const map = {};
+    appData.verses.forEach(v => {
+        v.dates.forEach(d => {
+            map[d] = (map[d] || 0) + 1;
+        });
+    });
+    return map;
+}
+
+// --- GERAÇÃO DE ICS ---
 function generateICSFile(verseData, dates) {
     const uidBase = verseData.id;
     const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -538,6 +616,41 @@ window.closeReview = function() {
     document.getElementById('reviewModal').style.display = 'none';
 };
 
+// --- NOVA LÓGICA: DASHBOARD (Renderiza Missão do Dia) ---
+function renderDashboard() {
+    const dash = document.getElementById('todayDashboard');
+    const list = document.getElementById('todayList');
+    const countEl = document.getElementById('todayCount');
+    if(!dash || !list) return;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // Filtra versículos que têm revisão HOJE
+    const todayVerses = appData.verses.filter(v => v.dates.includes(todayStr));
+
+    if(todayVerses.length === 0) {
+        dash.style.display = 'none'; // Esconde se não tiver nada
+        return;
+    }
+
+    dash.style.display = 'block';
+    countEl.innerText = todayVerses.length;
+    
+    list.innerHTML = todayVerses.map(v => `
+        <div class="dash-item" onclick="startFlashcardFromDash(${v.id})">
+            <strong>${v.ref}</strong>
+            <small style="color:var(--accent)">▶ Treinar</small>
+        </div>
+    `).join('');
+}
+
+// Wrapper para abrir o flashcard direto do dashboard
+window.startFlashcardFromDash = function(id) {
+    document.getElementById('reviewModal').style.display = 'flex'; // Abre Modal Principal
+    startFlashcard(id); // Inicia Card direto
+};
+
+
 // --- 7. CHANGELOG & UTILITÁRIOS ---
 function updateTable() {
     const tbody = document.querySelector('#historyTable tbody');
@@ -582,6 +695,7 @@ window.deleteVerse = function(id) {
     updateTable();
     updateRadar();
     updatePacingUI();
+    renderDashboard(); // Atualiza painel do dia
     
     // 4. Mostra Toast com botão de Desfazer
     showUndoToast(id);
@@ -607,6 +721,7 @@ window.handleUndo = function() {
     updateTable();
     updateRadar();
     updatePacingUI();
+    renderDashboard();
     
     // Limpa backup
     verseBackup = null;
@@ -661,6 +776,7 @@ window.clearData = function() {
         updateTable();
         updateRadar();
         updatePacingUI();
+        renderDashboard();
         checkStreak(); 
     }
 };
@@ -688,6 +804,7 @@ window.importData = function(input) {
             updateTable();
             updateRadar();
             updatePacingUI();
+            renderDashboard();
             checkStreak();
             showToast("Backup restaurado com sucesso!", "success");
         } catch (err) { 
@@ -734,6 +851,7 @@ if (window.loadVersesFromFirestore) {
                     saveToStorage();
                     updateTable();
                     updateRadar();
+                    renderDashboard(); // Atualiza dashboard com dados da nuvem
                     showToast('Dados sincronizados da nuvem!', 'success');
                 }
             });
