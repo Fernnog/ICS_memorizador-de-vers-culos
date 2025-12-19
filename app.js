@@ -38,7 +38,7 @@ window.onload = function() {
     updateTable();
     updateRadar();      
     updatePacingUI();
-    renderDashboard(); // <--- INICIA O DASHBOARD VISÍVEL
+    renderDashboard(); 
 };
 
 function saveToStorage() {
@@ -428,6 +428,7 @@ window.closeConflictModal = function() {
     pendingVerseData = null;
 };
 
+// Algoritmo Recursivo para achar dia livre (Usado também no Smart Recovery)
 function findNextLightDay(dateStr) {
     const limit = 5;
     const loadMap = getCurrentLoadMap();
@@ -453,6 +454,7 @@ function getCurrentLoadMap() {
     return map;
 }
 
+// --- GERAÇÃO DE ICS ROBUSTA ---
 function generateICSFile(verseData, dates) {
     const uidBase = verseData.id;
     const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -465,7 +467,8 @@ function generateICSFile(verseData, dates) {
     ].join('\r\n');
 
     const clozeText = generateClozeText(verseData.text);
-    const description = `🧠 DESAFIO:\nComplete: "${clozeText}"\n\n👇 RESPOSTA:\n${verseData.text}`.replace(/\n/g, '\\n');
+    const rawDescription = `🧠 DESAFIO: Complete: "${clozeText}"\n\n👇 RESPOSTA:\n${verseData.text}`;
+    const description = escapeICS(rawDescription);
 
     dates.forEach((dateStr, index) => {
         const dtStart = dateStr.replace(/-/g, '');
@@ -473,13 +476,15 @@ function generateICSFile(verseData, dates) {
         dEnd.setDate(dEnd.getDate() + 1);
         const dtEnd = getLocalDateISO(dEnd).replace(/-/g, '');
 
+        const summary = escapeICS(`NeuroBible: ${verseData.ref} (Rev ${index+1})`);
+
         const eventBlock = [
             'BEGIN:VEVENT',
             `UID:${uidBase}-${index}@neurobible.app`,
             `DTSTAMP:${dtStamp}`,
             `DTSTART;VALUE=DATE:${dtStart}`,
             `DTEND;VALUE=DATE:${dtEnd}`,
-            `SUMMARY:NeuroBible: ${verseData.ref} (Rev ${index+1})`,
+            `SUMMARY:${summary}`,
             `DESCRIPTION:${description}`,
             'END:VEVENT'
         ].join('\r\n');
@@ -488,13 +493,24 @@ function generateICSFile(verseData, dates) {
     });
 
     icsContent += '\r\nEND:VCALENDAR';
+
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `plano_${verseData.ref.replace(/[^a-z0-9]/gi, '_')}.ics`;
+    const safeName = verseData.ref.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    link.download = `plano_${safeName}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// Utilitário importante para sanear textos do ICS
+function escapeICS(str) {
+    if (!str) return '';
+    return str.replace(/\\/g, '\\\\')
+              .replace(/;/g, '\\;')
+              .replace(/,/g, '\\,')
+              .replace(/\n/g, '\\n');
 }
 
 // --- 6. SISTEMA DE FLASHCARDS AVANÇADO (NEURO UPGRADE) ---
@@ -600,30 +616,63 @@ window.closeReview = function() {
     document.getElementById('reviewModal').style.display = 'none';
 };
 
-// NOVO: Lógica de Feedback (Reiniciar ou Manter)
+// ATUALIZADO (SMART RECOVERY): Lógica de Feedback Inteligente
 window.handleDifficulty = function(level) {
     const verseIndex = appData.verses.findIndex(v => v.id === currentReviewId);
     if (verseIndex === -1) return;
     const verse = appData.verses[verseIndex];
 
     if (level === 'hard') {
-        // Punição: Reinicia o ciclo de retenção para HOJE
-        const todayISO = getLocalDateISO(new Date());
-        verse.startDate = todayISO; 
-        verse.dates = calculateSRSDates(todayISO);
-        showToast('Reiniciando ciclo. Foco total!', 'error');
+        // --- LÓGICA DE RECUPERAÇÃO TÁTICA ---
+        
+        // 1. Verifica se estamos no Fim do Ciclo (aprox. 50+ dias desde o início)
+        const today = new Date();
+        const start = new Date(verse.startDate + 'T00:00:00');
+        const diffTime = Math.abs(today - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const isEndCycle = diffDays >= 50;
+
+        if (isEndCycle) {
+            // Cenário Crítico: Falha no final -> Reinício Completo
+            const todayISO = getLocalDateISO(new Date());
+            verse.startDate = todayISO; 
+            verse.dates = calculateSRSDates(todayISO);
+            showToast('Ciclo final falhou. Reiniciando para consolidar.', 'warning');
+        } else {
+            // Cenário Comum: Falha no meio -> Revisão Extra Inteligente
+            // Define amanhã como alvo inicial
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = getLocalDateISO(tomorrow);
+
+            // Usa a função existente para achar um dia sem sobrecarga (Smart Reschedule)
+            const recoveryDate = findNextLightDay(tomorrowStr);
+
+            // Adiciona essa data extra na agenda se ela já não existir
+            if (!verse.dates.includes(recoveryDate)) {
+                verse.dates.push(recoveryDate);
+                verse.dates.sort(); // Reordena cronologicamente
+                
+                // Formata data para feedback visual amigável
+                const d = new Date(recoveryDate + 'T00:00:00');
+                const fmtDate = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+                showToast(`Revisão extra agendada para ${fmtDate}. Sem estresse!`, 'success');
+            } else {
+                showToast('Reforço já estava agendado. Mantenha o foco!', 'warning');
+            }
+        }
     } else {
-        showToast('Ciclo mantido. Parabéns!', 'success');
+        showToast('Ótimo! Segue o plano.', 'success');
     }
 
-    // Persiste alterações
+    // Persiste alterações (Local + Cloud)
     saveToStorage();
     if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
     
     // Atualiza visualizações
     updateRadar();
     renderDashboard();
-    backToList(); // Volta para a lista de treino do dia
+    backToList();
 };
 
 // --- DASHBOARD (Painel do Dia) ---
