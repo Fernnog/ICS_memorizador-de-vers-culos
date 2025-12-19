@@ -1,6 +1,17 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.1.0",
+        date: "2025-12-19",
+        title: "Neuro-Upgrade: Scaffolding & Metacognição",
+        changes: [
+            "🧱 <b>Scaffolding Inverso (Andaime Cognitivo):</b> O treino agora possui níveis de dificuldade progressiva dentro do mesmo cartão. 1º Nível: Apenas iniciais (`O S é o m p...`) para esforço máximo. 2º Nível: Botão de Dica libera as lacunas. 3º Nível: Texto completo.",
+            "🧠 <b>Feedback Metacognitivo:</b> O sistema parou de adivinhar. Agora VOCÊ decide. Botão <b>'Foi Difícil'</b> reinicia o ciclo SRS imediatamente (reset para Dia 0). Botão <b>'Foi Fácil'</b> mantém a agenda. Isso impede a 'ilusão de competência'.",
+            "🔀 <b>Interleaving (Embaralhamento):</b> A lista de revisão do dia agora é apresentada em ordem aleatória, quebrando a dependência sequencial (ex: lembrar de Lucas só porque veio depois de Mateus).",
+            "🎨 <b>Nova UI de Treino:</b> Design renovado nos Flashcards com tipografia monoespaçada para o modo de iniciais e controles de dica intuitivos."
+        ]
+    },
+    {
         version: "1.0.9",
         date: "2025-12-19",
         title: "Dashboard Diário & Gestão de Carga",
