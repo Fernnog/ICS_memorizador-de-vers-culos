@@ -20,14 +20,17 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // Habilita persistência offline do Firestore (Prioridade 3 - Suporte Offline Híbrido)
-db.enablePersistence()
-  .catch((err) => {
-      if (err.code == 'failed-precondition') {
-          console.warn('Persistência falhou: Múltiplas abas abertas.');
-      } else if (err.code == 'unimplemented') {
-          console.warn('Navegador não suporta persistência offline.');
-      }
-  });
+// Ajuste para evitar warnings de depreciação: verifica suporte antes de habilitar
+if (firebase.firestore.isSupported) {
+    db.enablePersistence({ synchronizeTabs: true })
+      .catch((err) => {
+          if (err.code == 'failed-precondition') {
+              console.warn('Persistência falhou: Múltiplas abas abertas.');
+          } else if (err.code == 'unimplemented') {
+              console.warn('Navegador não suporta persistência offline.');
+          }
+      });
+}
 
 // --- GESTÃO DE AUTENTICAÇÃO ---
 
