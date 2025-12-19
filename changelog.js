@@ -1,6 +1,17 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.0.9",
+        date: "2025-12-19",
+        title: "Dashboard Diário & Gestão de Carga",
+        changes: [
+            "🎯 <b>Painel 'Missão de Hoje':</b> O foco mudou! Agora, ao abrir o app, você vê imediatamente seus versículos pendentes para revisão no topo da tela. Se estiver vazio, você recebe um feedback de 'Tudo em dia!'.",
+            "🛡️ <b>Gestão Inteligente de Sobrecarga:</b> O sistema agora prevê o futuro. Ao tentar salvar um versículo, se ele detectar que uma data de revisão cairá em um dia já lotado, ele pausa e oferece buscar automaticamente o próximo dia livre.",
+            "🌎 <b>Correção de Fuso Horário:</b> Ajuste crítico na lógica temporal. O sistema abandonou o padrão UTC (Londres) para respeitar estritamente o horário local do seu dispositivo, garantindo que o 'Hoje' seja realmente hoje.",
+            "🔧 <b>Performance & Logs:</b> Atualização na inicialização do banco de dados para eliminar avisos antigos (warnings) e garantir compatibilidade futura."
+        ]
+    },
+    {
         version: "1.0.8",
         date: "2025-12-18",
         title: "Cloud Sync & Correções Mobile",
