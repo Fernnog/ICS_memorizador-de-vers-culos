@@ -171,19 +171,37 @@
         <div id="flashcardContainer" style="display:none;">
             <div class="flashcard" onclick="flipCard()">
                 <div class="flashcard-inner" id="flashcardInner">
+                    
                     <div class="flashcard-front">
-                        <small>O QUE DIZ O TEXTO?</small>
+                        <small>DESAFIO DE MEMÓRIA</small>
                         <h2 id="cardRef">João 3:16</h2>
-                        <p id="cardCloze" class="cloze-text">...</p>
                         
-                        <div class="tap-hint-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                            <small>Virar Cartão</small>
+                        <p id="cardTextContent" class="cloze-text">...</p>
+                        
+                        <div class="front-controls">
+                            <button id="btnHint" class="btn-hint" onclick="event.stopPropagation(); showHintStage()">
+                                💡 Preciso de uma dica
+                            </button>
+                            
+                            <div class="tap-hint-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                                <small>Ver Resposta Completa</small>
+                            </div>
                         </div>
                     </div>
+
                     <div class="flashcard-back">
                         <small>RESPOSTA COMPLETA</small>
                         <p id="cardFullText">...</p>
+                        
+                        <div class="feedback-actions">
+                            <button class="btn-feedback hard" onclick="event.stopPropagation(); handleDifficulty('hard')">
+                                😓 Errei / Foi Difícil
+                            </button>
+                            <button class="btn-feedback easy" onclick="event.stopPropagation(); handleDifficulty('easy')">
+                                😎 Acertei / Foi Fácil
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
