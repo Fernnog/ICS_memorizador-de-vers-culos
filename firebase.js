@@ -52,8 +52,10 @@ auth.onAuthStateChanged(user => {
         if(emailInput) emailInput.value = '';
         if(passInput) passInput.value = '';
 
-        // Sincronização Inicial (Prioridade 3)
-        // loadUserVerses(user.uid); 
+        // Sincronização: Processa fila de exclusões pendentes ao conectar
+        if (window.processPendingQueue) {
+            window.processPendingQueue();
+        }
         
     } else {
         // Usuário DESLOGADO
@@ -174,3 +176,61 @@ window.loadVersesFromFirestore = function(callback) {
           showToast('Erro na sincronização.', 'error');
       });
 };
+
+// --- GESTÃO AVANÇADA DE DADOS (CLOUD + OFFLINE) ---
+
+// 1. Tenta apagar na nuvem. Se falhar (offline), agenda para depois.
+window.handleCloudDeletion = function(verseId) {
+    const user = auth.currentUser;
+    if (!user) return; // Se não tem user, é puramente local
+
+    if (navigator.onLine) {
+        // Online: Apaga direto
+        db.collection('users').doc(user.uid).collection('verses').doc(String(verseId))
+          .delete()
+          .then(() => console.log(`[Cloud] Versículo ${verseId} excluído.`))
+          .catch(err => console.error('[Cloud] Erro ao excluir:', err));
+    } else {
+        // Offline: Adiciona à fila de pendências
+        addToPendingDeletions(verseId);
+    }
+};
+
+// 2. Adiciona ID à fila no LocalStorage
+function addToPendingDeletions(verseId) {
+    let pending = JSON.parse(localStorage.getItem('pendingDeletions') || '[]');
+    if (!pending.includes(verseId)) {
+        pending.push(verseId);
+        localStorage.setItem('pendingDeletions', JSON.stringify(pending));
+        console.log(`[Offline] Exclusão do ID ${verseId} agendada.`);
+    }
+}
+
+// 3. Processa a fila quando o app inicia (ou a net volta)
+window.processPendingQueue = function() {
+    if (!navigator.onLine || !auth.currentUser) return;
+
+    const pending = JSON.parse(localStorage.getItem('pendingDeletions') || '[]');
+    if (pending.length === 0) return;
+
+    console.log(`[Sync] Processando ${pending.length} exclusões pendentes...`);
+
+    pending.forEach(id => {
+        db.collection('users').doc(auth.currentUser.uid).collection('verses').doc(String(id))
+          .delete()
+          .then(() => {
+              // Remove da lista de pendentes após sucesso
+              removeIdFromPending(id);
+          })
+          .catch(err => console.error('[Sync] Falha ao processar pendente:', err));
+    });
+};
+
+function removeIdFromPending(id) {
+    let pending = JSON.parse(localStorage.getItem('pendingDeletions') || '[]');
+    pending = pending.filter(x => x !== id);
+    localStorage.setItem('pendingDeletions', JSON.stringify(pending));
+}
+
+// Listener para quando a conexão voltar
+window.addEventListener('online', window.processPendingQueue);
