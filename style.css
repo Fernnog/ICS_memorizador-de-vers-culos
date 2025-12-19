@@ -584,3 +584,19 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
         margin: auto;
     }
 }
+
+/* Estilo para o botão de Desfazer no Toast */
+.toast-undo-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: background 0.2s;
+}
+.toast-undo-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
