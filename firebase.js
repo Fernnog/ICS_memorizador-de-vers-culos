@@ -1,284 +1,142 @@
-// firebase.js - Backend Logic v1.1.2 (Sync & Settings)
-
-// 1. CONFIGURAÇÃO (Preencha com seus dados do Console Firebase se mudarem)
-const firebaseConfig = {
-  apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
-  authDomain: "neurobible-5b44f.firebaseapp.com",
-  projectId: "neurobible-5b44f",
-  storageBucket: "neurobible-5b44f.firebasestorage.app",
-  messagingSenderId: "1050657162706",
-  appId: "1:1050657162706:web:03d8101b6b6e15d92bf40b",
-  measurementId: "G-P92Z7DFW7N"
-};
-
-// Inicializa Firebase apenas se não houver instâncias anteriores
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// Habilita persistência offline do Firestore (Suporte Offline Híbrido)
-if (firebase.firestore.isSupported) {
-    db.enablePersistence({ synchronizeTabs: true })
-      .catch((err) => {
-          if (err.code == 'failed-precondition') {
-              console.warn('Persistência falhou: Múltiplas abas abertas.');
-          } else if (err.code == 'unimplemented') {
-              console.warn('Navegador não suporta persistência offline.');
-          }
-      });
-}
-
-// --- GESTÃO DE AUTENTICAÇÃO ---
-
-// Monitor de Estado (Observer)
-auth.onAuthStateChanged(user => {
-    const dot = document.getElementById('authStatusDot');
-    const btnLogout = document.getElementById('btnLogout');
-    const authMsg = document.getElementById('authMessage');
-    const emailInput = document.getElementById('authEmail');
-    const passInput = document.getElementById('authPassword');
-
-    if (user) {
-        // Usuário LOGADO
-        console.log('Firebase: Usuário conectado:', user.email);
-        
-        // Atualiza UI
-        if(dot) dot.style.backgroundColor = '#2ecc71'; // Verde
-        if(btnLogout) btnLogout.style.display = 'block';
-        if(authMsg) authMsg.innerHTML = `Logado como: <strong>${user.email}</strong>`;
-        
-        // Limpa campos para segurança visual
-        if(emailInput) emailInput.value = '';
-        if(passInput) passInput.value = '';
-
-        // Sincronização: Processa fila de exclusões pendentes ao conectar
-        if (window.processPendingQueue) {
-            window.processPendingQueue();
-        }
-        
-    } else {
-        // Usuário DESLOGADO
-        console.log('Firebase: Usuário desconectado');
-        
-        if(dot) dot.style.backgroundColor = '#ccc'; // Cinza
-        if(btnLogout) btnLogout.style.display = 'none';
-        if(authMsg) authMsg.innerText = "Entre para sincronizar seus versículos.";
+// changelog.js
+const systemChangelog = [
+    {
+        version: "1.1.2",
+        date: "2025-12-21",
+        title: "Sync Total & Gaveta de Histórico",
+        changes: [
+            "☁️ <b>Sincronização de Ritmo:</b> O seu modo de estudo (Elite, Alternado ou Leve) agora é salvo na nuvem. Se você alterar a configuração no celular, ela será lembrada no computador automaticamente.",
+            "🗄️ <b>Gaveta de Histórico:</b> Para limpar a poluição visual, a lista de versículos agora inicia recolhida. Clique no cabeçalho para expandir ou esconder sua coleção.",
+            "🔍 <b>Busca Instantânea:</b> Adicionamos uma barra de pesquisa dentro da gaveta. Encontre qualquer referência antiga em milissegundos sem precisar rolar a tela.",
+            "⚡ <b>Turbo Loading:</b> O sistema agora usa carregamento paralelo (Promise.all) para baixar seus versículos e configurações simultaneamente ao fazer login."
+        ]
+    },
+    {
+        version: "1.1.1",
+        date: "2025-12-20",
+        title: "Neuro-Ancoragem & Micro-Cenas",
+        changes: [
+            "🧠 <b>Campo de Mnemônica:</b> Novo campo opcional no cadastro para inserir sua 'Micro-Cena' (ex: Associação Visual da Referência). Transforma dados abstratos em ganchos concretos.",
+            "🎭 <b>Estágio de Visualização (Stage -1):</b> O Flashcard ganhou uma nova dimensão. Antes de tentar lembrar o texto (Acrônimo), você agora visualiza a cena mnemônica no 'Palco'.",
+            "🤖 <b>Inteligência Híbrida:</b> O sistema detecta automaticamente se o versículo tem mnemônica. Se tiver, apresenta 3 etapas (-1, 0, 1). Se não (ou se for antigo), mantém o fluxo clássico de 2 etapas (0, 1) sem quebrar.",
+            "🌫️ <b>Foco Direcionado (Blur):</b> Durante a fase de visualização da mnemônica, o texto bíblico recebe um efeito de desfoque (blur) para impedir a leitura passiva e forçar a evocação mental."
+        ]
+    },
+    {
+        version: "1.1.0",
+        date: "2025-12-19",
+        title: "Neuro-Upgrade: Scaffolding & Metacognição",
+        changes: [
+            "🧱 <b>Scaffolding Inverso (Andaime Cognitivo):</b> O treino agora possui níveis de dificuldade progressiva dentro do mesmo cartão. 1º Nível: Apenas iniciais (`O S é o m p...`) para esforço máximo. 2º Nível: Botão de Dica libera as lacunas. 3º Nível: Texto completo.",
+            "🧠 <b>Feedback Metacognitivo:</b> O sistema parou de adivinhar. Agora VOCÊ decide. Botão <b>'Foi Difícil'</b> reinicia o ciclo SRS imediatamente (reset para Dia 0). Botão <b>'Foi Fácil'</b> mantém a agenda. Isso impede a 'ilusão de competência'.",
+            "🔀 <b>Interleaving (Embaralhamento):</b> A lista de revisão do dia agora é apresentada em ordem aleatória, quebrando a dependência sequencial (ex: lembrar de Lucas só porque veio depois de Mateus).",
+            "🎨 <b>Nova UI de Treino:</b> Design renovado nos Flashcards com tipografia monoespaçada para o modo de iniciais e controles de dica intuitivos."
+        ]
+    },
+    {
+        version: "1.0.9",
+        date: "2025-12-19",
+        title: "Dashboard Diário & Gestão de Carga",
+        changes: [
+            "🎯 <b>Painel 'Missão de Hoje':</b> O foco mudou! Agora, ao abrir o app, você vê imediatamente seus versículos pendentes para revisão no topo da tela. Se estiver vazio, você recebe um feedback de 'Tudo em dia!'.",
+            "🛡️ <b>Gestão Inteligente de Sobrecarga:</b> O sistema agora prevê o futuro. Ao tentar salvar um versículo, se ele detectar que uma data de revisão cairá em um dia já lotado, ele pausa e oferece buscar automaticamente o próximo dia livre.",
+            "🌎 <b>Correção de Fuso Horário:</b> Ajuste crítico na lógica temporal. O sistema abandonou o padrão UTC (Londres) para respeitar estritamente o horário local do seu dispositivo, garantindo que o 'Hoje' seja realmente hoje.",
+            "🔧 <b>Performance & Logs:</b> Atualização na inicialização do banco de dados para eliminar avisos antigos (warnings) e garantir compatibilidade futura."
+        ]
+    },
+    {
+        version: "1.0.8",
+        date: "2025-12-18",
+        title: "Cloud Sync & Correções Mobile",
+        changes: [
+            "☁️ <b>Sincronização na Nuvem:</b> O NeuroBible agora está conectado! Crie sua conta para salvar seus versículos automaticamente no Firebase. Adeus backups manuais.",
+            "🔐 <b>Sistema de Login:</b> Substituímos os antigos botões de importar/exportar por um painel de autenticação seguro (E-mail e Senha).",
+            "📱 <b>Mobile First:</b> Correção total do layout em celulares. O cabeçalho agora se adapta verticalmente e os formulários não 'vazam' mais da tela em dispositivos menores.",
+            "✨ <b>Persistência Híbrida:</b> O sistema mantém seus dados locais se estiver offline e sincroniza assim que a conexão volta."
+        ]
+    },
+    {
+        version: "1.0.7",
+        date: "2025-12-18",
+        title: "Mobile PWA & Modo Offline",
+        changes: [
+            "📱 <b>Web App Nativo (PWA):</b> Agora você pode instalar o NeuroBible no seu Android/iOS! Adicione à tela inicial para uma experiência de aplicativo completa, sem a barra de endereços do navegador.",
+            "📶 <b>Modo Offline:</b> Vai estudar no metrô ou modo avião? Sem problemas. O sistema agora funciona 100% sem internet graças ao novo Service Worker que armazena o app no seu dispositivo.",
+            "🎨 <b>Identidade Visual:</b> O cabeçalho foi refinado profissionalmente. O logo agora possui uma moldura 'app-icon' elegante e alinhamento otimizado com o título.",
+            "📂 <b>Organização de Assets:</b> Reestruturação interna de pastas de imagem para maior performance e padronização."
+        ]
+    },
+    {
+        version: "1.0.6",
+        date: "2025-12-18",
+        title: "Feedback Imediato & Ajuste SRS",
+        changes: [
+            "📍 <b>Dia Zero (Learning Day):</b> O dia em que você adiciona o versículo agora aparece no Radar e na Agenda. Isso confirma visualmente seu plantio.",
+            "🧠 <b>Ciclo Completo:</b> O algoritmo foi ajustado para 8 etapas (0, 1, 3... 60), garantindo contato imediato com o conteúdo."
+        ]
+    },
+    {
+        version: "1.0.5",
+        date: "2025-12-18",
+        title: "Gestão de Sobrecarga & Refino UI",
+        changes: [
+            "🚨 <b>Válvula de Escape:</b> Dias com mais de 5 revisões agora exibem um alerta inteligente. Com um clique, você transfere o excesso automaticamente para o próximo dia 'Leve' disponível na agenda.",
+            "🎨 <b>Flashcards Premium:</b> Adeus emojis! A tela de treino agora usa ícones vetoriais com animações suaves de rotação e tipografia refinada para uma experiência mais imersiva.",
+            "👻 <b>Foco Total:</b> O botão de 'Voltar' foi redesenhado no estilo 'Ghost' (transparente e minimalista), reduzindo distrações visuais durante sua memorização."
+        ]
+    },
+    {
+        version: "1.0.4",
+        date: "2025-12-18",
+        title: "Harmonia Visual & Modo Leve",
+        changes: [
+            "🪶 <b>Modo Leve & Ícones:</b> Renomeamos o 'Modo Zen' para 'Modo Leve' e substituímos os emojis antigos por ícones vetoriais (SVG) de alta definição no seletor de planos.",
+            "👁️ <b>Feedback Visual de Ritmo:</b> Adicionamos um indicador discreto no header (canto superior esquerdo do botão) que mostra o ícone do plano atual sem precisar abrir o menu.",
+            "✨ <b>Refinamento UI:</b> O badge de 'Dias Seguidos' (Streak) perdeu o fundo preto pesado e ganhou um visual minimalista e elegante, mais integrado ao design do sistema."
+        ]
+    },
+    {
+        version: "1.0.3",
+        date: "2025-12-18",
+        title: "Previsão Inteligente & Refinamento UI",
+        changes: [
+            "🔮 <b>Painel de Previsão:</b> Chega de adivinhar! Agora, ao digitar a data e referência, você vê instantaneamente quais dias futuros receberão as revisões.",
+            "🚨 <b>Alerta de Sobrecarga:</b> O sistema agora detecta dias congestionados no futuro. Se uma data de revisão cair em um dia 'cheio' (borda vermelha), você saberá antes de confirmar.",
+            "🎨 <b>UI Minimalista:</b> O botão de 'Ritmo' foi simplificado (borda verde/vermelha) para reduzir ruído visual, e os ícones de ação foram modernizados."
+        ]
+    },
+    {
+        version: "1.0.2",
+        date: "2025-12-18",
+        title: "Redesign Visual & Radar Expandido",
+        changes: [
+            "🎨 <b>Visual Profissional:</b> Interface totalmente redesenhada. Substituímos botões de texto por ícones SVG minimalistas e limpamos a poluição visual.",
+            "📡 <b>Radar de 63 Dias:</b> O mapa de calor agora tem sua própria janela (Modal) e exibe 9 semanas completas, cobrindo todo o ciclo do SRS.",
+            "🌘 <b>Dark Mode Automático:</b> O sistema agora respeita a preferência de cor do seu sistema operacional (Claro/Escuro).",
+            "🔔 <b>Notificações Inteligentes:</b> O ícone do Radar exibe um ponto de alerta vermelho caso a carga de revisões de hoje esteja alta."
+        ]
+    },
+    {
+        version: "1.0.1",
+        date: "2025-12-18",
+        title: "Flashcards Integrados ao Radar",
+        changes: [
+            "🃏 <b>Flashcards Interativos:</b> Agora o Radar de Carga é clicável! Clique em qualquer dia colorido para abrir a revisão.",
+            "🔄 <b>Animação 3D:</b> Treine sua memória com cartões que viram na tela (Frente: Lacunas / Verso: Resposta).",
+            "✨ <b>Modo Foco:</b> A revisão acontece dentro da página, sem precisar sair para o calendário."
+        ]
+    },
+    {
+        version: "1.0.0",
+        date: "2025-12-18",
+        title: "Lançamento Oficial & Neuro-Upgrade",
+        changes: [
+            "🧠 <b>Recuperação Ativa:</b> Os eventos da agenda (.ics) agora ocultam palavras-chave estrategicamente.",
+            "🙈 <b>Omissão & Resposta:</b> O arquivo de agenda separa o desafio da resposta original (role para baixo no evento para ver).",
+            "📊 <b>Radar de Carga:</b> Sistema de prevenção de burnout mental."
+        ]
     }
-});
+];
 
-// Funções de UI (Expostas globalmente para o HTML)
-window.handleLogin = function() {
-    const email = document.getElementById('authEmail').value;
-    const pass = document.getElementById('authPassword').value;
-
-    if(!email || !pass) {
-        showToast('Preencha e-mail e senha.', 'error');
-        return;
-    }
-
-    auth.signInWithEmailAndPassword(email, pass)
-        .then((userCredential) => {
-            closeAuthModal();
-            showToast('Login realizado com sucesso!', 'success');
-            // O carregamento de dados será acionado pelo app.js ou observer
-            if(window.loadVersesFromFirestore) {
-                // Pequeno delay para garantir que auth state propagou
-                setTimeout(() => window.location.reload(), 500); 
-            }
-        })
-        .catch((error) => {
-            console.error(error);
-            let msg = 'Erro no login.';
-            if(error.code === 'auth/user-not-found') msg = 'Usuário não encontrado.';
-            if(error.code === 'auth/wrong-password') msg = 'Senha incorreta.';
-            showToast(msg, 'error');
-        });
-};
-
-window.handleSignUp = function() {
-    const email = document.getElementById('authEmail').value;
-    const pass = document.getElementById('authPassword').value;
-
-    if(!email || !pass) {
-        showToast('Preencha e-mail e senha.', 'error');
-        return;
-    }
-
-    auth.createUserWithEmailAndPassword(email, pass)
-        .then((userCredential) => {
-            closeAuthModal();
-            showToast('Conta criada! Bem-vindo.', 'success');
-        })
-        .catch((error) => {
-            console.error(error);
-            let msg = 'Erro ao criar conta.';
-            if(error.code === 'auth/email-already-in-use') msg = 'E-mail já cadastrado.';
-            if(error.code === 'auth/weak-password') msg = 'Senha muito fraca.';
-            showToast(msg, 'error');
-        });
-};
-
-window.handleLogout = function() {
-    if(confirm('Deseja realmente sair?')) {
-        auth.signOut().then(() => {
-            closeAuthModal();
-            showToast('Você saiu da conta.', 'warning');
-            setTimeout(() => window.location.reload(), 1000); // Recarrega para limpar estado
-        });
-    }
-};
-
-// Controle do Modal
-window.openAuthModal = function() {
-    document.getElementById('authModal').style.display = 'flex';
-};
-
-window.closeAuthModal = function() {
-    document.getElementById('authModal').style.display = 'none';
-};
-
-// --- LÓGICA FIRESTORE (CORE SYNC) ---
-
-/**
- * Salva ou Atualiza um versículo no Firestore.
- */
-window.saveVerseToFirestore = function(verseData) {
-    const user = auth.currentUser;
-    if (!user) return; // Se offline/deslogado, app.js mantém apenas no LocalStorage
-
-    db.collection('users').doc(user.uid).collection('verses').doc(String(verseData.id))
-      .set(verseData)
-      .then(() => {
-          console.log('Versículo sincronizado na nuvem.');
-      })
-      .catch((err) => {
-          console.error('Erro ao salvar na nuvem:', err);
-      });
-};
-
-/**
- * NOVO: Salva Configurações (Ritmo de Estudo)
- * Prioridade 2: Sincronização de Perfil
- */
-window.saveSettingsToFirestore = function(settings) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Salva no documento raiz do usuário (user.uid), fundindo com dados existentes
-    db.collection('users').doc(user.uid).set({
-        settings: settings
-    }, { merge: true }) 
-    .then(() => console.log('Configurações de ritmo salvas na nuvem.'))
-    .catch(err => console.error('Erro cloud settings:', err));
-};
-
-/**
- * ATUALIZADO: Carrega Versículos E Configurações (Parallel Fetching)
- * Prioridade 2: Promise.all para performance e consistência
- */
-window.loadVersesFromFirestore = function(callback) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    console.log('[Sync] Iniciando download de dados...');
-    
-    const userDocRef = db.collection('users').doc(user.uid);
-    const versesCollectionRef = userDocRef.collection('verses');
-
-    // Executa as duas consultas simultaneamente
-    Promise.all([
-        versesCollectionRef.get(), // Index 0: Versículos
-        userDocRef.get()           // Index 1: Configurações do User
-    ]).then((results) => {
-        const versesSnapshot = results[0];
-        const userDocSnapshot = results[1];
-
-        // 1. Processa Versículos
-        const cloudVerses = [];
-        versesSnapshot.forEach((doc) => {
-            cloudVerses.push(doc.data());
-        });
-
-        // 2. Processa Configurações (Se existirem)
-        if (userDocSnapshot.exists && userDocSnapshot.data().settings) {
-            // Atualiza o estado global definido no app.js
-            if (typeof appData !== 'undefined') {
-                appData.settings = userDocSnapshot.data().settings;
-                console.log('[Sync] Ritmo carregado:', appData.settings.planInterval);
-                
-                // Atualiza a UI se a função estiver disponível
-                if (typeof updatePacingUI === 'function') {
-                    updatePacingUI();
-                }
-            }
-        }
-
-        // Retorna os versículos para o app.js finalizar a renderização
-        if (callback) callback(cloudVerses);
-    })
-    .catch((err) => {
-        console.error('[Sync] Erro crítico no carregamento:', err);
-        showToast('Erro na sincronização.', 'error');
-    });
-};
-
-// --- GESTÃO AVANÇADA DE DADOS (CLOUD + OFFLINE) ---
-
-// 1. Tenta apagar na nuvem. Se falhar (offline), agenda para depois.
-window.handleCloudDeletion = function(verseId) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    if (navigator.onLine) {
-        // Online: Apaga direto
-        db.collection('users').doc(user.uid).collection('verses').doc(String(verseId))
-          .delete()
-          .then(() => console.log(`[Cloud] Versículo ${verseId} excluído.`))
-          .catch(err => console.error('[Cloud] Erro ao excluir:', err));
-    } else {
-        // Offline: Adiciona à fila de pendências
-        addToPendingDeletions(verseId);
-    }
-};
-
-// 2. Adiciona ID à fila no LocalStorage
-function addToPendingDeletions(verseId) {
-    let pending = JSON.parse(localStorage.getItem('pendingDeletions') || '[]');
-    if (!pending.includes(verseId)) {
-        pending.push(verseId);
-        localStorage.setItem('pendingDeletions', JSON.stringify(pending));
-        console.log(`[Offline] Exclusão do ID ${verseId} agendada.`);
-    }
-}
-
-// 3. Processa a fila quando o app inicia (ou a net volta)
-window.processPendingQueue = function() {
-    if (!navigator.onLine || !auth.currentUser) return;
-
-    const pending = JSON.parse(localStorage.getItem('pendingDeletions') || '[]');
-    if (pending.length === 0) return;
-
-    console.log(`[Sync] Processando ${pending.length} exclusões pendentes...`);
-
-    pending.forEach(id => {
-        db.collection('users').doc(auth.currentUser.uid).collection('verses').doc(String(id))
-          .delete()
-          .then(() => {
-              // Remove da lista de pendentes após sucesso
-              removeIdFromPending(id);
-          })
-          .catch(err => console.error('[Sync] Falha ao processar pendente:', err));
-    });
-};
-
-function removeIdFromPending(id) {
-    let pending = JSON.parse(localStorage.getItem('pendingDeletions') || '[]');
-    pending = pending.filter(x => x !== id);
-    localStorage.setItem('pendingDeletions', JSON.stringify(pending));
-}
-
-// Listener para quando a conexão voltar
-window.addEventListener('online', window.processPendingQueue);
+// Expõe para uso global
+window.neuroChangelog = systemChangelog;
