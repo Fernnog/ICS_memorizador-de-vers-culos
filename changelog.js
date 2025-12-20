@@ -1,6 +1,17 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.1.2",
+        date: "2025-12-21",
+        title: "Sync Total & Gaveta de Histórico",
+        changes: [
+            "☁️ <b>Sincronização de Ritmo:</b> O seu modo de estudo (Elite, Alternado ou Leve) agora é salvo na nuvem. Se você alterar a configuração no celular, ela será lembrada no computador automaticamente.",
+            "🗄️ <b>Gaveta de Histórico:</b> Para limpar a poluição visual, a lista de versículos agora inicia recolhida. Clique no cabeçalho para expandir ou esconder sua coleção.",
+            "🔍 <b>Busca Instantânea:</b> Adicionamos uma barra de pesquisa dentro da gaveta. Encontre qualquer referência antiga em milissegundos sem precisar rolar a tela.",
+            "⚡ <b>Turbo Loading:</b> O sistema agora usa carregamento paralelo (Promise.all) para baixar seus versículos e configurações simultaneamente ao fazer login."
+        ]
+    },
+    {
         version: "1.1.1",
         date: "2025-12-20",
         title: "Neuro-Ancoragem & Micro-Cenas",
