@@ -11,7 +11,7 @@ let appData = {
 let currentReviewId = null;
 let cardStage = 0; // -1: Mnemônica, 0: Iniciais (Hard), 1: Lacunas (Medium)
 
-// --- ÍCONES SVG PARA UI DINÂMICA (NOVO) ---
+// --- ÍCONES SVG PARA UI DINÂMICA ---
 const ICONS = {
     target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
     bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
@@ -577,7 +577,9 @@ function startFlashcard(verseId) {
     document.getElementById('flashcardContainer').style.display = 'block';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
     
-    document.getElementById('cardRef').innerText = verse.ref;
+    // CORREÇÃO: Preenche Frente e Verso
+    document.getElementById('cardRef').innerText = verse.ref; // Frente
+    document.getElementById('cardRefBack').innerText = verse.ref; // Verso
     document.getElementById('cardFullText').innerText = verse.text;
     
     // [PRIORITY 2] LÓGICA DE DECISÃO INTELIGENTE
@@ -596,6 +598,7 @@ function renderCardContent(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
     const mnemonicText = document.getElementById('cardMnemonicText');
+    const refEl = document.getElementById('cardRef'); // Referência da Frente
 
     // Reset Display
     contentEl.classList.remove('blur-text');
@@ -603,6 +606,9 @@ function renderCardContent(verse) {
 
     if (cardStage === -1) {
         // --- ESTÁGIO -1: MNEMÔNICA (Ancoragem) ---
+        // CORREÇÃO: Esconde a Referência
+        refEl.style.display = 'none';
+        
         mnemonicBox.style.display = 'block';
         mnemonicText.innerText = verse.mnemonic;
         
@@ -612,11 +618,17 @@ function renderCardContent(verse) {
     } 
     else if (cardStage === 0) {
         // --- ESTÁGIO 0: ACRÔNIMO (Hard) ---
+        // CORREÇÃO: Mostra a Referência
+        refEl.style.display = 'block';
+        
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode';
     } 
     else if (cardStage === 1) {
         // --- ESTÁGIO 1: CLOZE (Medium) ---
+        // CORREÇÃO: Mostra a Referência
+        refEl.style.display = 'block';
+        
         const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
         contentEl.innerHTML = `"${clozeHTML}"`;
         contentEl.className = 'cloze-text'; // Remove monoespaçado
@@ -637,7 +649,7 @@ window.showHintStage = function() {
     updateHintButtonUI();
 };
 
-// ATUALIZADO (PRIORIDADE 2): Usa SVGs e HTML injetado
+// ATUALIZADO: Usa SVGs e HTML injetado
 function updateHintButtonUI() {
     const btn = document.getElementById('btnHint');
     
