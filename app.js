@@ -11,6 +11,12 @@ let appData = {
 let currentReviewId = null;
 let cardStage = 0; // -1: Mnemônica, 0: Iniciais (Hard), 1: Lacunas (Medium)
 
+// --- ÍCONES SVG PARA UI DINÂMICA (NOVO) ---
+const ICONS = {
+    target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+    bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
+};
+
 window.onload = function() {
     // --- 0. REGISTRO DO SERVICE WORKER (PWA) ---
     if ('serviceWorker' in navigator) {
@@ -631,15 +637,18 @@ window.showHintStage = function() {
     updateHintButtonUI();
 };
 
-// NOVO: Atualiza o texto do botão de dica conforme o estágio
+// ATUALIZADO (PRIORIDADE 2): Usa SVGs e HTML injetado
 function updateHintButtonUI() {
     const btn = document.getElementById('btnHint');
+    
     if (cardStage === -1) {
-        btn.style.display = 'block';
-        btn.innerHTML = '🎯 Já visualizei, mostrar texto';
+        btn.style.display = 'inline-flex';
+        // Ícone Target
+        btn.innerHTML = `${ICONS.target} <span>Já visualizei, mostrar texto</span>`;
     } else if (cardStage === 0) {
-        btn.style.display = 'block';
-        btn.innerHTML = '💡 Preciso de uma dica';
+        btn.style.display = 'inline-flex';
+        // Ícone Bulb (Lâmpada)
+        btn.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
     } else {
         btn.style.display = 'none'; // No estágio 1, a próxima dica é virar a carta
     }
