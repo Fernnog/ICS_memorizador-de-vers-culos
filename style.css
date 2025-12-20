@@ -722,3 +722,41 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .toast-undo-btn:hover {
     background: rgba(255, 255, 255, 0.4);
 }
+
+/* --- MNEMONIC STYLES (NOVO - PRIORITY 1) --- */
+.mnemonic-box {
+    background-color: var(--hover-bg);
+    border-left: 3px solid var(--accent);
+    padding: 15px;
+    margin: 10px 0 20px 0;
+    border-radius: 0 8px 8px 0;
+    text-align: center;
+    width: 90%;
+    animation: fadeIn 0.5s ease;
+    /* Garante que não estoure no mobile */
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.mnemonic-text {
+    font-style: italic;
+    color: var(--primary);
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 5px 0 0 0;
+}
+
+.mnemonic-icon {
+    font-size: 1.2rem;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Efeito de Blur para o texto de suporte (Scaffolding) */
+.blur-text {
+    filter: blur(5px);
+    opacity: 0.3;
+    user-select: none;
+    pointer-events: none;
+    transition: all 0.5s ease;
+}
