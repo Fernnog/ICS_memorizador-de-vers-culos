@@ -426,7 +426,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 100%;
 }
 
-/* Botão de Dica */
+/* Botão de Dica (MODIFICADO PARA SVG) */
 .btn-hint {
     background: transparent;
     border: 1px dashed var(--accent);
@@ -437,6 +437,11 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     font-size: 0.85rem;
     transition: all 0.2s;
     opacity: 0.8;
+    /* Adições para SVG Flexbox */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 .btn-hint:hover {
     background: var(--hover-bg);
@@ -451,19 +456,35 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     gap: 10px;
     width: 100%;
 }
+
+/* Botões de Feedback (MODIFICADO PARA SVG) */
 .btn-feedback {
     flex: 1; 
     padding: 12px; 
     border: none; 
     border-radius: 8px;
     color: white; 
-    font-weight: bold; 
+    font-weight: 600; /* Mais peso para legibilidade */
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s, background-color 0.2s;
+    /* Adições para SVG Flexbox */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.95rem;
 }
 .btn-feedback:hover { transform: scale(1.03); }
 .btn-feedback.hard { background: #e74c3c; } /* Vermelho */
 .btn-feedback.easy { background: #27ae60; } /* Verde */
+
+/* Estilos Globais para SVGs dentro dos botões */
+.btn-feedback svg,
+.btn-hint svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.5px;
+}
 
 /* ------------------------------------- */
 
@@ -744,12 +765,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     font-size: 1rem;
     font-weight: 500;
     margin: 5px 0 0 0;
-}
-
-.mnemonic-icon {
-    font-size: 1.2rem;
-    display: block;
-    margin-bottom: 5px;
 }
 
 /* Efeito de Blur para o texto de suporte (Scaffolding) */
