@@ -183,7 +183,6 @@
                         <h2 id="cardRef">João 3:16</h2>
                         
                         <div id="mnemonicContainer" class="mnemonic-box" style="display:none;">
-                            <span class="mnemonic-icon">🧠</span>
                             <p id="cardMnemonicText" class="mnemonic-text">...</p>
                         </div>
                         
@@ -207,10 +206,12 @@
                         
                         <div class="feedback-actions">
                             <button class="btn-feedback hard" onclick="event.stopPropagation(); handleDifficulty('hard')">
-                                😓 Errei / Foi Difícil
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                <span>Difícil / Errei</span>
                             </button>
                             <button class="btn-feedback easy" onclick="event.stopPropagation(); handleDifficulty('easy')">
-                                😎 Acertei / Foi Fácil
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                <span>Fácil / Acertei</span>
                             </button>
                         </div>
                     </div>
