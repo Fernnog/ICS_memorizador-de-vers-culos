@@ -1,6 +1,17 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.1.1",
+        date: "2025-12-20",
+        title: "Neuro-Ancoragem & Micro-Cenas",
+        changes: [
+            "🧠 <b>Campo de Mnemônica:</b> Novo campo opcional no cadastro para inserir sua 'Micro-Cena' (ex: Associação Visual da Referência). Transforma dados abstratos em ganchos concretos.",
+            "🎭 <b>Estágio de Visualização (Stage -1):</b> O Flashcard ganhou uma nova dimensão. Antes de tentar lembrar o texto (Acrônimo), você agora visualiza a cena mnemônica no 'Palco'.",
+            "🤖 <b>Inteligência Híbrida:</b> O sistema detecta automaticamente se o versículo tem mnemônica. Se tiver, apresenta 3 etapas (-1, 0, 1). Se não (ou se for antigo), mantém o fluxo clássico de 2 etapas (0, 1) sem quebrar.",
+            "🌫️ <b>Foco Direcionado (Blur):</b> Durante a fase de visualização da mnemônica, o texto bíblico recebe um efeito de desfoque (blur) para impedir a leitura passiva e forçar a evocação mental."
+        ]
+    },
+    {
         version: "1.1.0",
         date: "2025-12-19",
         title: "Neuro-Upgrade: Scaffolding & Metacognição",
