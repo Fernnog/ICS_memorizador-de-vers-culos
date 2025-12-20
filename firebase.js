@@ -1,6 +1,6 @@
-// firebase.js
+// firebase.js - Backend Logic v1.1.2 (Sync & Settings)
 
-// 1. CONFIGURAÇÃO (Prioridade 2: Preencha com seus dados do Console Firebase)
+// 1. CONFIGURAÇÃO (Preencha com seus dados do Console Firebase se mudarem)
 const firebaseConfig = {
   apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
   authDomain: "neurobible-5b44f.firebaseapp.com",
@@ -19,8 +19,7 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Habilita persistência offline do Firestore (Prioridade 3 - Suporte Offline Híbrido)
-// Ajuste para evitar warnings de depreciação: verifica suporte antes de habilitar
+// Habilita persistência offline do Firestore (Suporte Offline Híbrido)
 if (firebase.firestore.isSupported) {
     db.enablePersistence({ synchronizeTabs: true })
       .catch((err) => {
@@ -84,6 +83,11 @@ window.handleLogin = function() {
         .then((userCredential) => {
             closeAuthModal();
             showToast('Login realizado com sucesso!', 'success');
+            // O carregamento de dados será acionado pelo app.js ou observer
+            if(window.loadVersesFromFirestore) {
+                // Pequeno delay para garantir que auth state propagou
+                setTimeout(() => window.location.reload(), 500); 
+            }
         })
         .catch((error) => {
             console.error(error);
@@ -107,7 +111,6 @@ window.handleSignUp = function() {
         .then((userCredential) => {
             closeAuthModal();
             showToast('Conta criada! Bem-vindo.', 'success');
-            // Cria documento inicial do usuário se necessário
         })
         .catch((error) => {
             console.error(error);
@@ -123,7 +126,7 @@ window.handleLogout = function() {
         auth.signOut().then(() => {
             closeAuthModal();
             showToast('Você saiu da conta.', 'warning');
-            // Opcional: Limpar dados da tela ou manter cache local
+            setTimeout(() => window.location.reload(), 1000); // Recarrega para limpar estado
         });
     }
 };
@@ -137,11 +140,10 @@ window.closeAuthModal = function() {
     document.getElementById('authModal').style.display = 'none';
 };
 
-// --- LÓGICA FIRESTORE (Prioridade 3 - Preparação) ---
+// --- LÓGICA FIRESTORE (CORE SYNC) ---
 
 /**
  * Salva ou Atualiza um versículo no Firestore.
- * Deve ser chamado pelo app.js ao criar/editar.
  */
 window.saveVerseToFirestore = function(verseData) {
     const user = auth.currentUser;
@@ -158,26 +160,69 @@ window.saveVerseToFirestore = function(verseData) {
 };
 
 /**
- * Carrega versículos do Firestore.
- * Pode ser chamado ao logar ou ao iniciar o app.
+ * NOVO: Salva Configurações (Ritmo de Estudo)
+ * Prioridade 2: Sincronização de Perfil
+ */
+window.saveSettingsToFirestore = function(settings) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Salva no documento raiz do usuário (user.uid), fundindo com dados existentes
+    db.collection('users').doc(user.uid).set({
+        settings: settings
+    }, { merge: true }) 
+    .then(() => console.log('Configurações de ritmo salvas na nuvem.'))
+    .catch(err => console.error('Erro cloud settings:', err));
+};
+
+/**
+ * ATUALIZADO: Carrega Versículos E Configurações (Parallel Fetching)
+ * Prioridade 2: Promise.all para performance e consistência
  */
 window.loadVersesFromFirestore = function(callback) {
     const user = auth.currentUser;
     if (!user) return;
 
-    db.collection('users').doc(user.uid).collection('verses')
-      .get()
-      .then((querySnapshot) => {
-          const cloudVerses = [];
-          querySnapshot.forEach((doc) => {
-              cloudVerses.push(doc.data());
-          });
-          if (callback) callback(cloudVerses);
-      })
-      .catch((err) => {
-          console.error('Erro ao buscar dados:', err);
-          showToast('Erro na sincronização.', 'error');
-      });
+    console.log('[Sync] Iniciando download de dados...');
+    
+    const userDocRef = db.collection('users').doc(user.uid);
+    const versesCollectionRef = userDocRef.collection('verses');
+
+    // Executa as duas consultas simultaneamente
+    Promise.all([
+        versesCollectionRef.get(), // Index 0: Versículos
+        userDocRef.get()           // Index 1: Configurações do User
+    ]).then((results) => {
+        const versesSnapshot = results[0];
+        const userDocSnapshot = results[1];
+
+        // 1. Processa Versículos
+        const cloudVerses = [];
+        versesSnapshot.forEach((doc) => {
+            cloudVerses.push(doc.data());
+        });
+
+        // 2. Processa Configurações (Se existirem)
+        if (userDocSnapshot.exists && userDocSnapshot.data().settings) {
+            // Atualiza o estado global definido no app.js
+            if (typeof appData !== 'undefined') {
+                appData.settings = userDocSnapshot.data().settings;
+                console.log('[Sync] Ritmo carregado:', appData.settings.planInterval);
+                
+                // Atualiza a UI se a função estiver disponível
+                if (typeof updatePacingUI === 'function') {
+                    updatePacingUI();
+                }
+            }
+        }
+
+        // Retorna os versículos para o app.js finalizar a renderização
+        if (callback) callback(cloudVerses);
+    })
+    .catch((err) => {
+        console.error('[Sync] Erro crítico no carregamento:', err);
+        showToast('Erro na sincronização.', 'error');
+    });
 };
 
 // --- GESTÃO AVANÇADA DE DADOS (CLOUD + OFFLINE) ---
@@ -185,7 +230,7 @@ window.loadVersesFromFirestore = function(callback) {
 // 1. Tenta apagar na nuvem. Se falhar (offline), agenda para depois.
 window.handleCloudDeletion = function(verseId) {
     const user = auth.currentUser;
-    if (!user) return; // Se não tem user, é puramente local
+    if (!user) return;
 
     if (navigator.onLine) {
         // Online: Apaga direto
