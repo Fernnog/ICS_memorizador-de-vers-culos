@@ -84,6 +84,12 @@
             <label for="startDate">Início da Memorização</label>
             <input type="date" id="startDate" onchange="updateRadar()">
         </div>
+        
+        <div class="form-group full-width">
+            <label for="mnemonic">Micro-Cena Mnemônica (Opcional)</label>
+            <input type="text" id="mnemonic" placeholder="Ex: Isca (Isaías) pescando dois Anzóis (55)..." autocomplete="off">
+        </div>
+        
         <div class="form-group full-width">
             <label for="text">Texto do Versículo</label>
             <textarea id="text" placeholder="Cole o texto aqui..."></textarea>
@@ -175,6 +181,11 @@
                     <div class="flashcard-front">
                         <small>DESAFIO DE MEMÓRIA</small>
                         <h2 id="cardRef">João 3:16</h2>
+                        
+                        <div id="mnemonicContainer" class="mnemonic-box" style="display:none;">
+                            <span class="mnemonic-icon">🧠</span>
+                            <p id="cardMnemonicText" class="mnemonic-text">...</p>
+                        </div>
                         
                         <p id="cardTextContent" class="cloze-text">...</p>
                         
