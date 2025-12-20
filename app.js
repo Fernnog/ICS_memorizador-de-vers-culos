@@ -1,4 +1,4 @@
-// app.js
+// app.js - NeuroBible Core Logic v1.1.2
 
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
@@ -306,10 +306,18 @@ window.closePlanModal = function() {
     document.getElementById('planModal').style.display = 'none'; 
 };
 
+// ATUALIZADO (Sync Settings): Salva configuração e sincroniza
 window.selectPlan = function(days) {
     if(!appData.settings) appData.settings = {};
     appData.settings.planInterval = days;
+    
     saveToStorage();
+    
+    // HOOK para Firebase (Se disponível)
+    if(window.saveSettingsToFirestore) {
+        window.saveSettingsToFirestore(appData.settings);
+    }
+
     updatePacingUI();
     closePlanModal();
     showToast(`Plano atualizado!`, 'success');
@@ -402,7 +410,6 @@ window.processAndGenerate = function() {
 };
 
 function finalizeSave(ref, text, startDate, reviewDates) {
-    // [PRIORITY 1] Captura do campo Mnemônica
     const mnemonic = document.getElementById('mnemonic').value.trim();
 
     const newVerse = {
@@ -429,7 +436,6 @@ function finalizeSave(ref, text, startDate, reviewDates) {
 
     document.getElementById('ref').value = '';
     document.getElementById('text').value = '';
-    // Limpa o campo de mnemônica após salvar
     document.getElementById('mnemonic').value = '';
     updatePreviewPanel();
     
@@ -536,13 +542,12 @@ function escapeICS(str) {
 
 // --- 6. SISTEMA DE FLASHCARDS AVANÇADO (NEURO UPGRADE) ---
 
-// ATUALIZADO: Abre a revisão diária com Embaralhamento (Interleaving)
+// Abre a revisão diária com Embaralhamento (Interleaving)
 function openDailyReview(dateStr) {
     let versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
     
     if (versesToReview.length === 0) return;
 
-    // NEURO-UPGRADE: Shuffle para evitar sequência viciada
     versesToReview = versesToReview.sort(() => Math.random() - 0.5);
 
     const modal = document.getElementById('reviewModal');
@@ -566,39 +571,36 @@ function openDailyReview(dateStr) {
     modal.style.display = 'flex';
 }
 
-// ATUALIZADO: Inicia o card com Lógica Inteligente de Mnemônica
+// Inicia o card com Lógica Inteligente de Mnemônica
 function startFlashcard(verseId) {
     currentReviewId = verseId;
     const verse = appData.verses.find(v => v.id === verseId);
     if (!verse) return;
 
-    // Reset Visual Completo
     document.getElementById('reviewListContainer').style.display = 'none';
     document.getElementById('flashcardContainer').style.display = 'block';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
     
-    // CORREÇÃO: Preenche Frente e Verso
     document.getElementById('cardRef').innerText = verse.ref; // Frente
     document.getElementById('cardRefBack').innerText = verse.ref; // Verso
     document.getElementById('cardFullText').innerText = verse.text;
     
-    // [PRIORITY 2] LÓGICA DE DECISÃO INTELIGENTE
     // Verifica se existe conteúdo real no campo mnemônica
     const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
 
-    // Se tiver mnemônica, começa no -1. Se não, começa no 0 (Comportamento Clássico).
+    // Se tiver mnemônica, começa no -1. Se não, começa no 0
     cardStage = hasMnemonic ? -1 : 0;
     
     renderCardContent(verse);
     updateHintButtonUI(); 
 }
 
-// NOVO: Renderiza o conteúdo da frente baseado no estágio (Scaffolding)
+// Renderiza o conteúdo da frente baseado no estágio (Scaffolding)
 function renderCardContent(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
     const mnemonicText = document.getElementById('cardMnemonicText');
-    const refEl = document.getElementById('cardRef'); // Referência da Frente
+    const refEl = document.getElementById('cardRef');
 
     // Reset Display
     contentEl.classList.remove('blur-text');
@@ -606,9 +608,7 @@ function renderCardContent(verse) {
 
     if (cardStage === -1) {
         // --- ESTÁGIO -1: MNEMÔNICA (Ancoragem) ---
-        // CORREÇÃO: Esconde a Referência
         refEl.style.display = 'none';
-        
         mnemonicBox.style.display = 'block';
         mnemonicText.innerText = verse.mnemonic;
         
@@ -618,24 +618,20 @@ function renderCardContent(verse) {
     } 
     else if (cardStage === 0) {
         // --- ESTÁGIO 0: ACRÔNIMO (Hard) ---
-        // CORREÇÃO: Mostra a Referência
         refEl.style.display = 'block';
-        
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode';
     } 
     else if (cardStage === 1) {
         // --- ESTÁGIO 1: CLOZE (Medium) ---
-        // CORREÇÃO: Mostra a Referência
         refEl.style.display = 'block';
-        
         const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
         contentEl.innerHTML = `"${clozeHTML}"`;
-        contentEl.className = 'cloze-text'; // Remove monoespaçado
+        contentEl.className = 'cloze-text';
     }
 }
 
-// NOVO: Transição Progressiva (-1 -> 0 -> 1)
+// Transição Progressiva (-1 -> 0 -> 1)
 window.showHintStage = function() {
     const verse = appData.verses.find(v => v.id === currentReviewId);
     
@@ -649,24 +645,20 @@ window.showHintStage = function() {
     updateHintButtonUI();
 };
 
-// ATUALIZADO: Usa SVGs e HTML injetado
 function updateHintButtonUI() {
     const btn = document.getElementById('btnHint');
     
     if (cardStage === -1) {
         btn.style.display = 'inline-flex';
-        // Ícone Target
         btn.innerHTML = `${ICONS.target} <span>Já visualizei, mostrar texto</span>`;
     } else if (cardStage === 0) {
         btn.style.display = 'inline-flex';
-        // Ícone Bulb (Lâmpada)
         btn.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
     } else {
-        btn.style.display = 'none'; // No estágio 1, a próxima dica é virar a carta
+        btn.style.display = 'none';
     }
 }
 
-// Funções de Controle do Card
 window.flipCard = function() {
     document.getElementById('flashcardInner').classList.toggle('is-flipped');
 };
@@ -681,16 +673,12 @@ window.closeReview = function() {
     document.getElementById('reviewModal').style.display = 'none';
 };
 
-// ATUALIZADO (SMART RECOVERY): Lógica de Feedback Inteligente
 window.handleDifficulty = function(level) {
     const verseIndex = appData.verses.findIndex(v => v.id === currentReviewId);
     if (verseIndex === -1) return;
     const verse = appData.verses[verseIndex];
 
     if (level === 'hard') {
-        // --- LÓGICA DE RECUPERAÇÃO TÁTICA ---
-        
-        // 1. Verifica se estamos no Fim do Ciclo (aprox. 50+ dias desde o início)
         const today = new Date();
         const start = new Date(verse.startDate + 'T00:00:00');
         const diffTime = Math.abs(today - start);
@@ -698,27 +686,20 @@ window.handleDifficulty = function(level) {
         const isEndCycle = diffDays >= 50;
 
         if (isEndCycle) {
-            // Cenário Crítico: Falha no final -> Reinício Completo
             const todayISO = getLocalDateISO(new Date());
             verse.startDate = todayISO; 
             verse.dates = calculateSRSDates(todayISO);
             showToast('Ciclo final falhou. Reiniciando para consolidar.', 'warning');
         } else {
-            // Cenário Comum: Falha no meio -> Revisão Extra Inteligente
-            // Define amanhã como alvo inicial
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = getLocalDateISO(tomorrow);
-
-            // Usa a função existente para achar um dia sem sobrecarga (Smart Reschedule)
             const recoveryDate = findNextLightDay(tomorrowStr);
 
-            // Adiciona essa data extra na agenda se ela já não existir
             if (!verse.dates.includes(recoveryDate)) {
                 verse.dates.push(recoveryDate);
-                verse.dates.sort(); // Reordena cronologicamente
+                verse.dates.sort();
                 
-                // Formata data para feedback visual amigável
                 const d = new Date(recoveryDate + 'T00:00:00');
                 const fmtDate = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
                 showToast(`Revisão extra agendada para ${fmtDate}. Sem estresse!`, 'success');
@@ -730,11 +711,9 @@ window.handleDifficulty = function(level) {
         showToast('Ótimo! Segue o plano.', 'success');
     }
 
-    // Persiste alterações (Local + Cloud)
     saveToStorage();
     if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
     
-    // Atualiza visualizações
     updateRadar();
     renderDashboard();
     backToList();
@@ -770,9 +749,11 @@ window.startFlashcardFromDash = function(id) {
     startFlashcard(id);
 };
 
-// --- 7. CHANGELOG & GESTÃO DE DADOS ---
+// --- 7. HISTÓRICO & GESTÃO DE DADOS (V2 EXPANDED) ---
+
+// ATUALIZADO: Renderiza na nova estrutura de tabela
 function updateTable() {
-    const tbody = document.querySelector('#historyTable tbody');
+    const tbody = document.getElementById('historyTableBody');
     if(!tbody) return;
     
     const countEl = document.getElementById('countDisplay');
@@ -790,6 +771,42 @@ function updateTable() {
         tbody.appendChild(tr);
     });
 }
+
+// NOVO: Toggle da Gaveta de Histórico
+window.toggleHistory = function() {
+    const section = document.getElementById('historySection');
+    const searchBox = document.getElementById('historySearchBox');
+    
+    section.classList.toggle('collapsed');
+    
+    // UX: Foca no input se abrir, limpa se fechar
+    if (!section.classList.contains('collapsed')) {
+        searchBox.style.display = 'block';
+        setTimeout(() => document.getElementById('searchHistory').focus(), 100);
+    } else {
+        searchBox.style.display = 'none';
+    }
+};
+
+// NOVO: Filtro de Busca (Otimizado)
+window.filterHistory = function() {
+    const term = document.getElementById('searchHistory').value.toLowerCase();
+    const rows = document.querySelectorAll('#historyTable tbody tr');
+    let visibleCount = 0;
+    const noResult = document.getElementById('noResultsMsg');
+
+    rows.forEach(row => {
+        const refText = row.cells[0].innerText.toLowerCase(); // Coluna Referência
+        if (refText.includes(term)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    if (noResult) noResult.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+};
 
 // Exclusão com Undo e Nuvem
 let undoTimer = null;
