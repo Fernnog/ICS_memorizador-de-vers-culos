@@ -288,10 +288,100 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     opacity: 1; border-color: var(--danger-text);
 }
 
-/* --- HISTÓRICO --- */
-.history-section { margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; }
+/* --- HISTÓRICO V2 (EXPANSÍVEL & SEARCH) --- */
+/* Prioridade 1 e 3 */
+
+.history-section {
+    margin-top: 30px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden; /* Importante para conter animação e scroll */
+    transition: box-shadow 0.3s ease;
+}
+
+/* Header que funciona como botão de abrir */
+.history-header {
+    padding: 15px 20px;
+    background: var(--hover-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer; /* Indica clicável */
+    user-select: none;
+    border-bottom: 1px solid transparent; /* Preparação para estado aberto */
+    transition: background 0.2s;
+}
+.history-header:hover { background: #eaeaea; }
+
+/* Controles (Search + Toggle) */
+.header-controls { display: flex; gap: 10px; align-items: center; }
+
+/* Input de Busca Animado */
+.search-wrapper input {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    width: 100px; /* Começa pequeno para mobile */
+    transition: width 0.3s, border-color 0.3s;
+    background: var(--white);
+    color: var(--text);
+}
+.search-wrapper input:focus { 
+    width: 160px; /* Expande ao focar */
+    border-color: var(--accent); 
+    outline: none;
+}
+
+/* Botão de Seta */
+.btn-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+    color: var(--text);
+    width: 32px; height: 32px; /* Área de toque melhor */
+}
+
+/* Ícone com rotação */
+.chevron-icon { 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+
+/* Estado Recolhido (Padrão) */
+.history-section.collapsed .history-body { display: none; }
+.history-section.collapsed .history-header { border-bottom-color: transparent; }
+.history-section.collapsed .chevron-icon { transform: rotate(-90deg); }
+
+/* Estado Expandido - Linha divisória aparece */
+.history-section:not(.collapsed) .history-header {
+    border-bottom: 1px solid var(--border);
+}
+
+/* Corpo do Histórico */
+.history-body { 
+    padding: 15px; 
+    animation: fadeInBody 0.3s ease;
+    background: var(--white);
+}
+
+/* Scroll Inteligente (Prioridade 3) */
+.table-scroll-container {
+    max-height: 300px; /* Limita altura para teclado não cobrir tudo */
+    overflow-y: auto;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    scrollbar-width: thin; /* Firefox */
+}
+
+@keyframes fadeInBody { from { opacity: 0; } to { opacity: 1; } }
+
+/* Tabela Estilos */
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-th { text-align: left; background: var(--hover-bg); padding: 10px; border-bottom: 2px solid var(--border); color: var(--text); }
+th { text-align: left; background: var(--hover-bg); padding: 10px; border-bottom: 2px solid var(--border); color: var(--text); position: sticky; top: 0; z-index: 10; }
 td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); }
 .delete-btn { color: #e74c3c; cursor: pointer; font-weight: bold; border:none; background:none;}
 
@@ -693,6 +783,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     top: 2px; right: 2px;
 }
 
+/* Ajustes Mobile Globais */
 @media (max-width: 600px) {
     /* Ajuste do Container Principal */
     body { padding: 10px; } /* Menos padding na borda da tela */
@@ -726,6 +817,9 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
         padding: 20px;
         margin: auto;
     }
+    
+    /* Ajuste do Input de Busca no Mobile */
+    .search-wrapper input:focus { width: 120px; }
 }
 
 /* Estilo para o botão de Desfazer no Toast */
@@ -744,7 +838,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     background: rgba(255, 255, 255, 0.4);
 }
 
-/* --- MNEMONIC STYLES (NOVO - PRIORITY 1) --- */
+/* --- MNEMONIC STYLES (NEURO UPGRADE) --- */
 .mnemonic-box {
     background-color: var(--hover-bg);
     border-left: 3px solid var(--accent);
