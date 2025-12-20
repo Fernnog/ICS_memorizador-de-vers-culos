@@ -2,14 +2,14 @@
 
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
-    verses: [], // { id, ref, text, startDate, dates: [] }
+    verses: [], // { id, ref, text, mnemonic, startDate, dates: [] }
     settings: { planInterval: 1 }, // 1=Diário, 2=Alternado, 3=Leve
     stats: { streak: 0, lastLogin: null } // Controle de Constância
 };
 
 // Variáveis Globais de Controle da Revisão
 let currentReviewId = null;
-let cardStage = 0; // 0: Iniciais (Hard), 1: Lacunas (Medium)
+let cardStage = 0; // -1: Mnemônica, 0: Iniciais (Hard), 1: Lacunas (Medium)
 
 window.onload = function() {
     // --- 0. REGISTRO DO SERVICE WORKER (PWA) ---
@@ -346,6 +346,15 @@ function generateClozeText(text) {
     }).join(' ');
 }
 
+// Helper para acrônimo (Primeiras Letras)
+function getAcronym(text) {
+    return text.split(' ').map(w => {
+        const firstChar = w.charAt(0);
+        const punctuation = w.match(/[.,;!?]+$/) ? w.match(/[.,;!?]+$/)[0] : '';
+        return firstChar + punctuation; 
+    }).join('  ');
+}
+
 // --- 5. AÇÃO PRINCIPAL E ICS ---
 let pendingVerseData = null;
 
@@ -387,10 +396,14 @@ window.processAndGenerate = function() {
 };
 
 function finalizeSave(ref, text, startDate, reviewDates) {
+    // [PRIORITY 1] Captura do campo Mnemônica
+    const mnemonic = document.getElementById('mnemonic').value.trim();
+
     const newVerse = {
         id: Date.now(),
         ref: ref,
         text: text,
+        mnemonic: mnemonic, // Salva a mnemônica
         startDate: startDate,
         dates: reviewDates
     };
@@ -410,6 +423,8 @@ function finalizeSave(ref, text, startDate, reviewDates) {
 
     document.getElementById('ref').value = '';
     document.getElementById('text').value = '';
+    // Limpa o campo de mnemônica após salvar
+    document.getElementById('mnemonic').value = '';
     updatePreviewPanel();
     
     showToast(`"${ref}" agendado com sucesso!`, 'success');
@@ -545,7 +560,7 @@ function openDailyReview(dateStr) {
     modal.style.display = 'flex';
 }
 
-// ATUALIZADO: Inicia o card no Estágio 0 (Primeiras Letras)
+// ATUALIZADO: Inicia o card com Lógica Inteligente de Mnemônica
 function startFlashcard(verseId) {
     currentReviewId = verseId;
     const verse = appData.verses.find(v => v.id === verseId);
@@ -555,51 +570,80 @@ function startFlashcard(verseId) {
     document.getElementById('reviewListContainer').style.display = 'none';
     document.getElementById('flashcardContainer').style.display = 'block';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
-    document.getElementById('btnHint').style.display = 'block'; // Mostra botão de dica
-
+    
     document.getElementById('cardRef').innerText = verse.ref;
     document.getElementById('cardFullText').innerText = verse.text;
     
-    // Inicia no modo Hardcore (Acrônimo)
-    cardStage = 0; 
+    // [PRIORITY 2] LÓGICA DE DECISÃO INTELIGENTE
+    // Verifica se existe conteúdo real no campo mnemônica
+    const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
+
+    // Se tiver mnemônica, começa no -1. Se não, começa no 0 (Comportamento Clássico).
+    cardStage = hasMnemonic ? -1 : 0;
+    
     renderCardContent(verse);
+    updateHintButtonUI(); 
 }
 
 // NOVO: Renderiza o conteúdo da frente baseado no estágio (Scaffolding)
 function renderCardContent(verse) {
     const contentEl = document.getElementById('cardTextContent');
-    
-    if (cardStage === 0) {
-        // Modo Acrônimo (Iniciais)
-        const words = verse.text.split(' ');
-        const acronym = words.map(w => {
-            const firstChar = w.charAt(0);
-            const punctuation = w.match(/[.,;!?]+$/) ? w.match(/[.,;!?]+$/)[0] : '';
-            return firstChar + punctuation; 
-        }).join('  '); // Espaçamento duplo para clareza
+    const mnemonicBox = document.getElementById('mnemonicContainer');
+    const mnemonicText = document.getElementById('cardMnemonicText');
+
+    // Reset Display
+    contentEl.classList.remove('blur-text');
+    mnemonicBox.style.display = 'none';
+
+    if (cardStage === -1) {
+        // --- ESTÁGIO -1: MNEMÔNICA (Ancoragem) ---
+        mnemonicBox.style.display = 'block';
+        mnemonicText.innerText = verse.mnemonic;
         
-        contentEl.innerText = acronym;
+        // Renderiza o acrônimo BORRADO ao fundo para contexto visual
+        contentEl.innerText = getAcronym(verse.text);
+        contentEl.className = 'cloze-text first-letter-mode blur-text'; 
+    } 
+    else if (cardStage === 0) {
+        // --- ESTÁGIO 0: ACRÔNIMO (Hard) ---
+        contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode';
     } 
     else if (cardStage === 1) {
-        // Modo Cloze (Lacunas)
+        // --- ESTÁGIO 1: CLOZE (Medium) ---
         const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
         contentEl.innerHTML = `"${clozeHTML}"`;
         contentEl.className = 'cloze-text'; // Remove monoespaçado
     }
 }
 
-// NOVO: Transição de Iniciais -> Lacunas (Botão de Dica)
+// NOVO: Transição Progressiva (-1 -> 0 -> 1)
 window.showHintStage = function() {
-    if (cardStage === 0) {
-        cardStage = 1; // Avança para o nível médio
-        const verse = appData.verses.find(v => v.id === currentReviewId);
-        if(verse) renderCardContent(verse);
-        
-        // Esconde o botão de dica (próximo passo é virar)
-        document.getElementById('btnHint').style.display = 'none';
+    const verse = appData.verses.find(v => v.id === currentReviewId);
+    
+    if (cardStage === -1) {
+        cardStage = 0; // Vai da Mnemônica para o Acrônimo
+    } else if (cardStage === 0) {
+        cardStage = 1; // Vai do Acrônimo para Lacunas
     }
+    
+    if(verse) renderCardContent(verse);
+    updateHintButtonUI();
 };
+
+// NOVO: Atualiza o texto do botão de dica conforme o estágio
+function updateHintButtonUI() {
+    const btn = document.getElementById('btnHint');
+    if (cardStage === -1) {
+        btn.style.display = 'block';
+        btn.innerHTML = '🎯 Já visualizei, mostrar texto';
+    } else if (cardStage === 0) {
+        btn.style.display = 'block';
+        btn.innerHTML = '💡 Preciso de uma dica';
+    } else {
+        btn.style.display = 'none'; // No estágio 1, a próxima dica é virar a carta
+    }
+}
 
 // Funções de Controle do Card
 window.flipCard = function() {
