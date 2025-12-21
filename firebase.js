@@ -1,10 +1,9 @@
-// firebase.js - Conexão Nuvem e Autenticação (Restaurado)
+// firebase.js - Conexão Nuvem e Autenticação (Atualizado)
 
 // 1. CONFIGURAÇÃO DO FIREBASE
 // ⚠️ IMPORTANTE: Substitua os valores abaixo pelos do seu projeto no Firebase Console
-// (Vá em Project Settings > General > Your Apps > SDK Setup and Configuration)
 const firebaseConfig = {
-   apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
+apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
   authDomain: "neurobible-5b44f.firebaseapp.com",
   projectId: "neurobible-5b44f",
   storageBucket: "neurobible-5b44f.firebasestorage.app",
@@ -33,18 +32,25 @@ try {
 // Monitora o estado do usuário (Logado/Deslogado)
 if (auth) {
     auth.onAuthStateChanged((user) => {
+        // Elementos de UI para alternância (Prioridade 1)
+        const loginState = document.getElementById('loginState');
+        const userState = document.getElementById('userState');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
         const dot = document.getElementById('authStatusDot');
-        const btnLogout = document.getElementById('btnLogout');
-        const authMsg = document.getElementById('authMessage');
+        const btnLogout = document.getElementById('btnLogout'); // Mantido para compatibilidade, embora esteja dentro do userState agora
 
         if (user) {
-            // Usuário Logado
+            // --- USUÁRIO LOGADO ---
             currentUser = user;
             console.log("Usuário conectado:", user.email);
             
+            // Atualiza UI: Esconde form, mostra perfil
+            if(loginState) loginState.style.display = 'none';
+            if(userState) userState.style.display = 'block';
+            if(userEmailDisplay) userEmailDisplay.innerText = user.email;
+            
+            // Indicador visual no header
             if (dot) dot.style.backgroundColor = "#2ecc71"; // Verde
-            if (btnLogout) btnLogout.style.display = "block";
-            if (authMsg) authMsg.innerText = `Conectado como: ${user.email}`;
 
             // Tenta carregar dados assim que logar
             if (window.loadVersesFromFirestore) {
@@ -53,13 +59,15 @@ if (auth) {
                 });
             }
         } else {
-            // Usuário Deslogado
+            // --- USUÁRIO DESLOGADO ---
             currentUser = null;
             console.log("Usuário desconectado.");
             
+            // Atualiza UI: Mostra form, esconde perfil
+            if(loginState) loginState.style.display = 'block';
+            if(userState) userState.style.display = 'none';
+            
             if (dot) dot.style.backgroundColor = "#ccc"; // Cinza
-            if (btnLogout) btnLogout.style.display = "none";
-            if (authMsg) authMsg.innerText = "Entre para sincronizar seus versículos na nuvem.";
         }
     });
 }
@@ -73,16 +81,17 @@ window.closeAuthModal = function() {
     document.getElementById('authModal').style.display = 'none';
 };
 
+// Cadastro (Função mantida caso decida reativar no futuro, mas botão foi removido do HTML)
 window.handleSignUp = function() {
     const email = document.getElementById('authEmail').value;
     const pass = document.getElementById('authPassword').value;
 
-    if (!email || !pass) return alert("Preencha e-mail e senha.");
+    if (!email || !pass) return showToast("Preencha e-mail e senha.", "error");
 
     auth.createUserWithEmailAndPassword(email, pass)
         .then((userCredential) => {
             window.showToast("Conta criada com sucesso!", "success");
-            window.closeAuthModal();
+            // Não precisa fechar modal forçadamente, o onAuthStateChanged já atualizará a UI
         })
         .catch((error) => {
             console.error(error);
@@ -94,25 +103,30 @@ window.handleLogin = function() {
     const email = document.getElementById('authEmail').value;
     const pass = document.getElementById('authPassword').value;
 
-    if (!email || !pass) return alert("Preencha e-mail e senha.");
+    if (!email || !pass) return showToast("Preencha e-mail e senha.", "error");
 
     auth.signInWithEmailAndPassword(email, pass)
         .then((userCredential) => {
             window.showToast("Login realizado!", "success");
+            // Modal pode continuar aberto mostrando o perfil ou fechar, depende da preferência.
+            // Aqui optamos por fechar para limpar a tela:
             window.closeAuthModal();
         })
         .catch((error) => {
             console.error(error);
-            window.showToast("Erro no login: " + error.message, "error");
+            // Tradução simples de erros comuns
+            let msg = error.message;
+            if (error.code === 'auth/wrong-password') msg = "Senha incorreta.";
+            if (error.code === 'auth/user-not-found') msg = "E-mail não cadastrado.";
+            
+            window.showToast("Erro: " + msg, "error");
         });
 };
 
 window.handleLogout = function() {
     auth.signOut().then(() => {
         window.showToast("Você saiu da conta.", "warning");
-        window.closeAuthModal();
-        // Opcional: Limpar dados locais ao sair
-        // window.location.reload(); 
+        // A UI se atualizará automaticamente via onAuthStateChanged
     });
 };
 
