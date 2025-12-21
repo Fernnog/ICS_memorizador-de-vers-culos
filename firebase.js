@@ -4,12 +4,13 @@
 // ⚠️ IMPORTANTE: Substitua os valores abaixo pelos do seu projeto no Firebase Console
 // (Vá em Project Settings > General > Your Apps > SDK Setup and Configuration)
 const firebaseConfig = {
-    apiKey: "SUA_API_KEY_AQUI",
-    authDomain: "seu-projeto.firebaseapp.com",
-    projectId: "seu-projeto",
-    storageBucket: "seu-projeto.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef123456"
+   apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
+  authDomain: "neurobible-5b44f.firebaseapp.com",
+  projectId: "neurobible-5b44f",
+  storageBucket: "neurobible-5b44f.firebasestorage.app",
+  messagingSenderId: "1050657162706",
+  appId: "1:1050657162706:web:03d8101b6b6e15d92bf40b",
+  measurementId: "G-P92Z7DFW7N"
 };
 
 // Inicialização segura
