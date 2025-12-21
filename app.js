@@ -1,4 +1,4 @@
-// app.js - NeuroBible Core Logic v1.1.2
+// app.js - NeuroBible Core Logic v1.1.3 (Atualizado com Lógica de Atrasados)
 
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
@@ -306,7 +306,6 @@ window.closePlanModal = function() {
     document.getElementById('planModal').style.display = 'none'; 
 };
 
-// ATUALIZADO (Sync Settings): Salva configuração e sincroniza
 window.selectPlan = function(days) {
     if(!appData.settings) appData.settings = {};
     appData.settings.planInterval = days;
@@ -719,21 +718,57 @@ window.handleDifficulty = function(level) {
     backToList();
 };
 
-// --- DASHBOARD (Painel do Dia) ---
+// --- DASHBOARD (Painel do Dia) - ATUALIZADO (PRIORIDADE 2) ---
 function renderDashboard() {
     const dash = document.getElementById('todayDashboard');
     const list = document.getElementById('todayList');
     const countEl = document.getElementById('todayCount');
+    
+    // Novos elementos do Painel de Atrasados
+    const overduePanel = document.getElementById('overduePanel');
+    const overdueList = document.getElementById('overdueList');
+    const overdueCount = document.getElementById('overdueCount');
+
     if(!dash || !list) return;
 
     const todayStr = getLocalDateISO(new Date());
+    
+    // 1. Lógica Atrasados: Se tiver qualquer data MENOR que hoje
+    const overdueVerses = appData.verses.filter(v => {
+        return v.dates.some(d => d < todayStr);
+    });
+
+    // 2. Lógica Hoje: Se tiver data IGUAL a hoje
     const todayVerses = appData.verses.filter(v => v.dates.includes(todayStr));
 
     dash.style.display = 'block';
+
+    // RENDERIZAR ATRASADOS
+    if (overdueVerses.length > 0 && overduePanel) {
+        overduePanel.style.display = 'block';
+        if(overdueCount) overdueCount.innerText = overdueVerses.length;
+        
+        if(overdueList) {
+            overdueList.innerHTML = overdueVerses.map(v => `
+                <div class="dash-item" onclick="startFlashcardFromDash(${v.id})" style="border-left: 4px solid #c0392b;">
+                    <strong>${v.ref}</strong>
+                    <small style="color:#c0392b">📅 Atrasado</small>
+                </div>
+            `).join('');
+        }
+    } else if (overduePanel) {
+        overduePanel.style.display = 'none';
+    }
+
+    // RENDERIZAR HOJE
     countEl.innerText = todayVerses.length;
     
     if(todayVerses.length === 0) {
-        list.innerHTML = `<div class="dash-empty-state">✨ Tudo em dia! Nenhuma revisão pendente para hoje.</div>`;
+        if(overdueVerses.length === 0) {
+            list.innerHTML = `<div class="dash-empty-state">✨ Tudo em dia! Nenhuma revisão pendente.</div>`;
+        } else {
+             list.innerHTML = `<div class="dash-empty-state">Foque nos atrasados acima! ☝️</div>`;
+        }
     } else {
         list.innerHTML = todayVerses.map(v => `
             <div class="dash-item" onclick="startFlashcardFromDash(${v.id})">
