@@ -1,6 +1,16 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.1.3",
+        date: "2025-12-21",
+        title: "Interação Inteligente & Refino Visual",
+        changes: [
+            "🧠 <b>Smart Interaction (Esforço Conta):</b> O sistema agora é mais justo. Se você interagir com um versículo atrasado (pedir uma dica ou dar feedback), ele é removido imediatamente da lista de pendências. O NeuroBible entende que você trabalhou nele hoje, reduzindo a ansiedade visual.",
+            "🎨 <b>Ícones SVG Delicados:</b> Substituímos o antigo emoji de calendário (📅) no painel de 'Atrasados' por um ícone vetorial de relógio minimalista. O alerta continua claro, mas visualmente muito mais leve e integrado ao design.",
+            "⚡ <b>Feedback Instantâneo:</b> A atualização do painel de atrasados agora ocorre em tempo real assim que você clica nos botões de ação do Flashcard."
+        ]
+    },
+    {
         version: "1.1.2",
         date: "2025-12-21",
         title: "Sync Total & Gaveta de Histórico",
