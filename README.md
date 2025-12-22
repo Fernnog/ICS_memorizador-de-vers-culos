@@ -1,107 +1,77 @@
-# 🧠 NeuroBible: Sistema de Gestão de Memorização & Treino Cognitivo
+# 🧠 NeuroBible: Sistema de Engenharia de Memória & Gestão Cognitiva
 
-> **"Não apenas agende. Treine seu cérebro de verdade."**
+> **"A diferença entre ler e reter é a arquitetura do processo."**
 
-O **NeuroBible** é uma aplicação web focada em **Neuroaprendizagem** e **Gestão de Carga Cognitiva**.
+O **NeuroBible** transcende a categoria de "agendas de versículos". É uma **Aplicação Progressiva (PWA)** desenhada sob princípios rigorosos de neurociência para transformar dados de curto prazo em sabedoria de longo prazo.
 
-Diferente de agendas comuns, ele evoluiu para se tornar um treinador ativo. Além de calcular *quando* revisar (usando Repetição Espaçada - SRS), ele gerencia o *como* revisar (Active Recall) e, crucialmente, *quanto* revisar, protegendo o usuário de sobrecargas mentais através de algoritmos inteligentes de redistribuição.
+Diferente de métodos passivos, este sistema atua como um "Personal Trainer Cognitivo". Ele calcula matematicamente o momento exato em que seu cérebro está prestes a esquecer uma informação (Curva do Esquecimento) e intervém com desafios ativos, garantindo a consolidação neural com o mínimo de esforço repetitivo.
 
-**Versão Atual:** v1.0.7 (Mobile PWA Edition)
-
----
-
-## 📱 Novidade: NeuroBible Mobile (PWA)
-
-A partir da versão 1.0.7, o NeuroBible é um **Progressive Web App (PWA)** completo.
-* **Instalável:** Adicione à tela inicial do seu Android ou iOS para uma experiência de aplicativo nativo (tela cheia, sem barra de navegação).
-* **Offline-First:** Graças ao novo *Service Worker*, o aplicativo funciona **100% sem internet**. Você pode revisar seus versículos no metrô, avião ou em áreas sem sinal.
+**Versão Atual:** v1.1.4 — *"Polimento, Identidade & Robustez"*
 
 ---
 
-## ⚙️ Engenharia de Retenção (Neurociência Aplicada)
+## 🧬 Os 4 Pilares da Neuroaprendizagem
 
-O sistema opera sobre cinco pilares científicos e técnicos:
+O sistema não se baseia em "decoreba", mas em **Engenharia de Retenção**. A arquitetura do código reflete quatro estágios cognitivos distintos:
 
-### 1. O Algoritmo de Repetição Espaçada (SRS)
-O sistema projeta **8 etapas estratégicas** de contato para cada versículo ao longo de 60 dias:
-* **Intervalos:** 0 (Hoje), 1, 3, 7, 14, 21, 30, 60 dias.
-* **Objetivo:** O ciclo inicia imediatamente no "Dia 0" (Plantio/Aprendizado) para feedback visual imediato, seguido por revisões que interceptam a memória logo antes dela desaparecer.
+### 1. Scaffolding Inverso (O "Andaime" Mental)
+O cérebro aprende melhor quando desafiado progressivamente. O NeuroBible implementa um fluxo de três estágios de dificuldade variável dentro de cada Flashcard:
+*   **Estágio -1 (Visualização Mnemônica):** Antes do texto, o sistema apresenta sua "Micro-Cena" (gancho visual criado por você). O texto bíblico aparece borrado (*blur*), forçando a evocação da imagem mental.
+*   **Estágio 0 (Ancoragem Hard):** O texto é removido, restando apenas as letras iniciais (Acrônimo). O esforço cognitivo aqui é máximo ("Active Recall").
+*   **Estágio 1 (Preenchimento / Cloze):** Se falhar, o usuário solicita uma dica e o sistema exibe o texto com lacunas estratégicas.
 
-### 2. Recuperação Ativa & Omissão (Cloze Deletion)
-Para evitar a leitura passiva, o sistema nunca entrega a resposta de bandeja:
-* **Na Agenda (.ics):** O evento oculta palavras-chave aleatórias.
-* **No Navegador (Flashcards):** Cartões interativos ocultam partes do texto, forçando o cérebro a preencher as lacunas.
+### 2. Algoritmo de Repetição Espaçada (SRS)
+Utilizamos uma variação otimizada do algoritmo *SuperMemo*. O ciclo de revisão é projetado para interceptar a memória pouco antes da queda:
+*   **Ciclo de 8 Etapas:** 0 (Plantio), 1, 3, 7, 14, 21, 30, 60 dias.
+*   **Correção de Rota:** Se o usuário sinaliza "Foi Difícil", o algoritmo ignora o calendário e reinicia o ciclo imediatamente (Reset para Dia 0), impedindo a ilusão de fluência.
 
-### 3. Gestão de Carga & "Válvula de Escape"
-O sistema monitora a saúde mental do usuário:
-* **Detecção:** Se um dia acumular mais de 5 revisões, um alerta visual é disparado.
-* **Ação:** Com um clique, o sistema busca automaticamente o próximo dia "Leve" (com pouca carga) na agenda futura e move o excesso para lá.
+### 3. Gestão de Carga & "Burnout Shield"
+Memorização exige energia. O sistema protege o usuário da exaustão mental:
+*   **Radar de Carga (63 Dias):** Um mapa de calor permite visualizar "tsunamis" de revisões futuras.
+*   **Válvula de Escape:** Se um dia futuro acumular mais de 5 revisões, o sistema bloqueia novos agendamentos e sugere a redistribuição automática para dias "Leves".
+*   **Feedback de Recuperação (v1.1.4):** Ao recuperar um item atrasado, o sistema fornece reforço positivo imediato, reduzindo a ansiedade associada a listas pendentes.
 
-### 4. Ritmo Sustentável (Pacing)
-Para garantir a constância, o usuário define seu ritmo de entrada:
-* **Diário:** Alta intensidade.
-* **Alternado:** Equilíbrio (dia sim, dia não).
-* **Modo Leve:** Foco em meditação e descanso.
-
-### 5. Arquitetura Offline (Service Worker)
-Um "porteiro inteligente" (script em segundo plano) armazena a interface e a lógica no cache do navegador na primeira visita, garantindo acesso instantâneo e resiliência a falhas de rede.
+### 4. Robustez & Identidade (Polimento v1.1.4)
+Um sistema de estudo precisa transmitir paz e confiança:
+*   **Splash Screen:** Uma entrada elegante que oculta o carregamento de dados e prepara o ambiente mental para o estudo.
+*   **Sanity Check:** Um "sistema imunológico" interno que roda a cada inicialização, corrigindo automaticamente dados legados de versões anteriores para evitar erros invisíveis.
 
 ---
 
-## 🚀 Guia de Uso
+## 🚀 Guia de Uso Rápido
 
-### Instalação (Mobile)
-1.  Acesse a página no Chrome (Android) ou Safari (iOS).
-2.  **Android:** Toque no menu (3 pontos) > "Adicionar à tela inicial" ou "Instalar aplicativo".
-3.  **iOS:** Toque em Compartilhar > "Adicionar à Tela de Início".
-4.  O ícone do NeuroBible aparecerá junto aos seus outros apps.
+### Passo 1: Plantio (Input)
+1.  **Mnemônica (Opcional):** Crie uma cena visual absurda para a referência (ex: "Uma baleia engolindo um relógio" para Jonas 1:17).
+2.  **Previsão:** O painel inferior mostra o impacto futuro. Se houver dias vermelhos (sobrecarregados), o sistema sugerirá outra data de início.
 
-### Passo 1: Inserção & Previsão
-1.  **Dados:** Insira a referência, data e texto.
-2.  **Previsão Inteligente:** Antes de salvar, observe o painel "Previsão de Revisões". Se houver dias com borda vermelha, significa que aquela data futura já está cheia.
-3.  **Feedback Imediato:** Ao confirmar, o dia de hoje ("Dia 0") acenderá no Radar.
+### Passo 2: O Treino (Flashcards)
+Acesse o **Radar** ou o **Dashboard Diário**.
+*   Tente recitar olhando apenas a Mnemônica ou as Iniciais.
+*   Use o botão "Dica" (💡) apenas se travar.
+*   **Julgamento:** Seja honesto. "Difícil" reinicia o ciclo. "Fácil" avança para a próxima etapa.
 
-### Passo 2: Treino Diário (Flashcards)
-Acesse o ícone do **Radar** e clique no dia atual (ou dias passados coloridos).
-* **Interface Imersiva:** Flashcards com design limpo e ícones animados.
-* **Mecânica:**
-    1.  Leia o texto com lacunas ("...").
-    2.  Tente recitar mentalmente.
-    3.  Clique no ícone de rotação para virar o cartão e conferir a resposta.
-
-### Passo 3: Gestão de Ritmo
-* **Seletor de Planos:** Clique no ícone de "Configuração/Engrenagem" para alterar seu modo.
-* **Bloqueio:** Se tentar adicionar versículos rápido demais (fora do ritmo), o botão de confirmação alertará o bloqueio.
-* **Streak:** Acompanhe seu contador "🔥" para manter a disciplina.
+### Passo 3: Sincronização & Ritmo
+*   O sistema opera **Offline-First** (funciona no modo avião). Assim que houver rede, ele sincroniza silenciosamente com o **Firebase Cloud**.
+*   Defina seu ritmo no menu superior: "Diário" (Elite), "Alternado" (Equilíbrio) ou "Modo Leve".
 
 ---
 
-## 🛠️ Ficha Técnica
+## 🛠️ Ficha Técnica & Arquitetura
 
-* **Arquitetura:** Single Page Application (SPA) - PWA Offline-first.
-* **Armazenamento:** LocalStorage (Persistência no navegador do usuário).
-* **Design System:**
-    * **Minimalismo:** Interface focada em conteúdo, botões "Ghost" e ícones SVG.
-    * **Dark Mode:** Suporte automático.
-    * **Feedback Visual:** Cores semânticas para carga (Verde/Amarelo/Vermelho).
-* **Tecnologias:**
-    * HTML5 Semântico + Manifest JSON.
-    * CSS3 (Grid, Flexbox, Keyframe Animations, Variables).
-    * JavaScript ES6+ (Service Workers, Manipulation de Datas, JSON, Blobs).
+*   **Core:** Single Page Application (SPA) em Vanilla JS (ES6+).
+*   **Offline Engine:** Service Workers customizados para cache de assets e shell da aplicação.
+*   **Backend:** Google Firebase (Firestore para DB, Auth para identidade).
+*   **Design System:** CSS3 Moderno (Variables, Flexbox, Keyframes) com suporte nativo a Dark Mode.
+*   **Persistência Híbrida:** LocalStorage (rapidez imediata) + Cloud Firestore (segurança e multi-device).
 
----
-
-## 📂 Estrutura de Arquivos
-
-* `index.html`: Interface principal, estrutura dos Modais.
-* `style.css`: Estilização visual, animações, regras de Dark Mode.
-* `app.js`: Lógica Core (SRS, Radar, ICS) e Registro do Service Worker.
-* `manifest.json`: Arquivo de identidade para instalação Android/PWA.
-* `service-worker.js`: Script de gerenciamento de cache e modo offline.
-* `changelog.js`: Registro histórico das versões.
-* `images/`: Diretório de assets (`logo.png`, `favicon.ico`).
-* `README.md`: Documentação oficial.
+### Estrutura de Arquivos
+*   `index.html`: Orquestração da UI e Splash Screen.
+*   `app.js`: Cérebro lógico (SRS, Sanity Checks, Manipulação do DOM).
+*   `style.css`: Estilização, animações de feedback e identidade visual.
+*   `firebase.js`: Camada de abstração de dados e autenticação.
+*   `changelog.js`: Registro histórico e controle de versionamento da UI.
+*   `manifest.json` & `service-worker.js`: Configuração PWA instalável.
 
 ---
 
-> *Desenvolvido com foco em eficiência neurológica e organização pessoal.*
+> *"O NeuroBible não guarda o que você quer ler. Ele constrói quem você quer ser."*
