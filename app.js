@@ -1,8 +1,8 @@
-// app.js - NeuroBible Core Logic v1.1.3 (Atualizado com Lógica de Atrasados)
+// app.js - NeuroBible Core Logic (Atualizado com Lógica de Interação Inteligente)
 
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
-    verses: [], // { id, ref, text, mnemonic, startDate, dates: [] }
+    verses: [], // { id, ref, text, mnemonic, startDate, dates: [], lastInteraction: null }
     settings: { planInterval: 1 }, // 1=Diário, 2=Alternado, 3=Leve
     stats: { streak: 0, lastLogin: null } // Controle de Constância
 };
@@ -89,6 +89,22 @@ function calculateSRSDates(startDateStr) {
         dates.push(getLocalDateISO(d));
     });
     return dates;
+}
+
+// NOVA FUNÇÃO: Registro de Interação (Prioridade 1)
+function registerInteraction(verse) {
+    const todayISO = getLocalDateISO(new Date());
+    
+    // Só salva se a data for diferente para evitar escritas desnecessárias
+    if (verse.lastInteraction !== todayISO) {
+        verse.lastInteraction = todayISO;
+        saveToStorage();
+        // Salvar na nuvem se disponível
+        if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
+        
+        // Atualiza UI imediatamente para refletir a saída dos atrasados
+        renderDashboard(); 
+    }
 }
 
 // --- 3. LÓGICA DO RADAR & INTERATIVIDADE ---
@@ -417,7 +433,8 @@ function finalizeSave(ref, text, startDate, reviewDates) {
         text: text,
         mnemonic: mnemonic, // Salva a mnemônica
         startDate: startDate,
-        dates: reviewDates
+        dates: reviewDates,
+        lastInteraction: null // Inicializa rastreio de interação
     };
     appData.verses.push(newVerse);
     saveToStorage();
@@ -630,7 +647,7 @@ function renderCardContent(verse) {
     }
 }
 
-// Transição Progressiva (-1 -> 0 -> 1)
+// Transição Progressiva (-1 -> 0 -> 1) com Registro de Interação (Prioridade 1)
 window.showHintStage = function() {
     const verse = appData.verses.find(v => v.id === currentReviewId);
     
@@ -640,7 +657,10 @@ window.showHintStage = function() {
         cardStage = 1; // Vai do Acrônimo para Lacunas
     }
     
-    if(verse) renderCardContent(verse);
+    if(verse) {
+        registerInteraction(verse); // REGISTRA ESFORÇO DO USUÁRIO
+        renderCardContent(verse);
+    }
     updateHintButtonUI();
 };
 
@@ -672,10 +692,14 @@ window.closeReview = function() {
     document.getElementById('reviewModal').style.display = 'none';
 };
 
+// Feedback com Registro de Interação (Prioridade 1)
 window.handleDifficulty = function(level) {
     const verseIndex = appData.verses.findIndex(v => v.id === currentReviewId);
     if (verseIndex === -1) return;
     const verse = appData.verses[verseIndex];
+
+    // REGISTRA INTERAÇÃO INDEPENDENTE DO RESULTADO
+    registerInteraction(verse);
 
     if (level === 'hard') {
         const today = new Date();
@@ -718,7 +742,7 @@ window.handleDifficulty = function(level) {
     backToList();
 };
 
-// --- DASHBOARD (Painel do Dia) - ATUALIZADO (PRIORIDADE 2) ---
+// --- DASHBOARD (Painel do Dia) - ATUALIZADO COM ÍCONE SVG E FILTRO (Prioridade 2 & 3) ---
 function renderDashboard() {
     const dash = document.getElementById('todayDashboard');
     const list = document.getElementById('todayList');
@@ -733,9 +757,12 @@ function renderDashboard() {
 
     const todayStr = getLocalDateISO(new Date());
     
-    // 1. Lógica Atrasados: Se tiver qualquer data MENOR que hoje
+    // 1. Lógica Atrasados REFINADA: 
+    // Data agendada menor que hoje E nenhuma interação registrada hoje
     const overdueVerses = appData.verses.filter(v => {
-        return v.dates.some(d => d < todayStr);
+        const hasPastDate = v.dates.some(d => d < todayStr);
+        const interactedToday = v.lastInteraction === todayStr; // Verifica a propriedade nova
+        return hasPastDate && !interactedToday;
     });
 
     // 2. Lógica Hoje: Se tiver data IGUAL a hoje
@@ -743,16 +770,24 @@ function renderDashboard() {
 
     dash.style.display = 'block';
 
-    // RENDERIZAR ATRASADOS
+    // RENDERIZAR ATRASADOS (Com Ícone SVG Novo)
     if (overdueVerses.length > 0 && overduePanel) {
         overduePanel.style.display = 'block';
         if(overdueCount) overdueCount.innerText = overdueVerses.length;
         
+        // Ícone SVG Delicado (Clock Alert) - Cor harmonizada com texto de erro
+        const overdueIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px; vertical-align:text-bottom;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
         if(overdueList) {
             overdueList.innerHTML = overdueVerses.map(v => `
                 <div class="dash-item" onclick="startFlashcardFromDash(${v.id})" style="border-left: 4px solid #c0392b;">
-                    <strong>${v.ref}</strong>
-                    <small style="color:#c0392b">📅 Atrasado</small>
+                    <div style="width:100%">
+                        <strong>${v.ref}</strong>
+                        <div style="display:flex; align-items:center; margin-top:4px; color:#c0392b; font-size:0.85rem;">
+                            ${overdueIcon} 
+                            <span style="font-weight:500;">Recuperar</span>
+                        </div>
+                    </div>
                 </div>
             `).join('');
         }
