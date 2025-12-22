@@ -1,4 +1,4 @@
-// app.js - NeuroBible Core Logic (Atualizado com Lógica de Interação Inteligente)
+// app.js - NeuroBible Core Logic (Atualizado v1.1.4)
 
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
@@ -17,6 +17,26 @@ const ICONS = {
     bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
 };
 
+// --- NOVO: SANITY CHECK (Migração de Dados v1.1.4) ---
+function runSanityCheck() {
+    let dataChanged = false;
+    // Garante que 'verses' existe
+    if (!appData.verses) appData.verses = [];
+
+    appData.verses.forEach(v => {
+        // Migração v1.1.4: Garante que lastInteraction existe para evitar erros
+        if (!v.hasOwnProperty('lastInteraction')) {
+            v.lastInteraction = null;
+            dataChanged = true;
+        }
+    });
+
+    if (dataChanged) {
+        console.log('[System] Migração de dados (Sanity Check v1.1.4) realizada.');
+        saveToStorage();
+    }
+}
+
 window.onload = function() {
     // --- 0. REGISTRO DO SERVICE WORKER (PWA) ---
     if ('serviceWorker' in navigator) {
@@ -27,6 +47,7 @@ window.onload = function() {
 
     initChangelog();
     loadFromStorage();
+    runSanityCheck(); // <--- Executa a limpeza e migração antes de renderizar
     
     // Define data de hoje (DATA LOCAL, NÃO UTC)
     const today = new Date();
@@ -45,6 +66,22 @@ window.onload = function() {
     updateRadar();      
     updatePacingUI();
     renderDashboard(); 
+
+    // --- LÓGICA DA SPLASH SCREEN (v1.1.4) ---
+    const splash = document.getElementById('splashScreen');
+    const versionLabel = document.getElementById('splashVersion');
+    
+    // Atualiza o texto da versão na Splash baseado no changelog.js
+    if(versionLabel && window.neuroChangelog && window.neuroChangelog.length > 0) {
+        versionLabel.innerText = `v${window.neuroChangelog[0].version}`;
+    }
+
+    // Remove a splash após 1.5s (Tempo de branding)
+    setTimeout(() => {
+        if(splash) splash.classList.add('hidden');
+        // Remove do DOM totalmente após a transição CSS (0.6s) terminar
+        setTimeout(() => { if(splash) splash.style.display = 'none'; }, 600);
+    }, 1500);
 };
 
 function saveToStorage() {
@@ -91,10 +128,14 @@ function calculateSRSDates(startDateStr) {
     return dates;
 }
 
-// NOVA FUNÇÃO: Registro de Interação (Prioridade 1)
+// NOVA FUNÇÃO: Registro de Interação (Atualizada com Feedback Inteligente v1.1.4)
 function registerInteraction(verse) {
     const todayISO = getLocalDateISO(new Date());
     
+    // Verifica SE estava atrasado ANTES de registrar a interação
+    // Definição de atrasado: Tem data no passado E não teve interação hoje
+    const wasOverdue = verse.dates.some(d => d < todayISO) && verse.lastInteraction !== todayISO;
+
     // Só salva se a data for diferente para evitar escritas desnecessárias
     if (verse.lastInteraction !== todayISO) {
         verse.lastInteraction = todayISO;
@@ -104,6 +145,11 @@ function registerInteraction(verse) {
         
         // Atualiza UI imediatamente para refletir a saída dos atrasados
         renderDashboard(); 
+
+        // FEEDBACK VISUAL (UX) - Apenas se recuperou um atrasado
+        if (wasOverdue) {
+            showToast("🚀 Progresso registrado! Item recuperado.", "success");
+        }
     }
 }
 
