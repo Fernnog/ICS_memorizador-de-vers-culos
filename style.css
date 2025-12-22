@@ -869,3 +869,60 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     pointer-events: none;
     transition: all 0.5s ease;
 }
+
+/* --- SPLASH SCREEN (v1.1.4) --- */
+/* Estilos e animações para a Tela de Boas-vindas */
+
+.splash-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: var(--bg); /* Usa a cor de fundo do tema (Dark/Light) */
+    z-index: 9999;
+    display: flex; justify-content: center; align-items: center;
+    transition: opacity 0.6s ease-out, visibility 0.6s;
+}
+
+.splash-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.splash-content {
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+    animation: slideUpFade 0.8s ease-out;
+}
+
+.splash-logo {
+    width: 80px; height: 80px; margin-bottom: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.splash-title {
+    font-size: 1.8rem; color: var(--primary); margin: 0 0 20px 0;
+    font-weight: 700; letter-spacing: -0.5px;
+}
+
+.loading-bar {
+    width: 120px; height: 4px; background: var(--border);
+    border-radius: 2px; overflow: hidden; position: relative;
+    margin-bottom: 10px;
+}
+
+.loading-fill {
+    width: 40%; height: 100%; background: var(--accent);
+    position: absolute; top: 0; left: 0;
+    animation: loadingMove 1.5s infinite ease-in-out;
+}
+
+.splash-version { opacity: 0.5; font-family: monospace; font-size: 0.8rem; color: var(--text); }
+
+@keyframes loadingMove {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
