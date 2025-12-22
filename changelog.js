@@ -1,6 +1,16 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.1.4",
+        date: "2025-12-21",
+        title: "Polimento, Identidade & Robustez",
+        changes: [
+            "🎨 <b>Splash Screen (Identidade):</b> O App agora inicia com uma tela de boas-vindas elegante e profissional. Além de reforçar a marca, ela esconde o carregamento técnico dos dados, garantindo que você só veja a interface quando tudo estiver 100% pronto.",
+            "✅ <b>Confirmação de Esforço:</b> Acabou a dúvida 'será que contou?'. Ao interagir com um versículo atrasado, o sistema agora exibe uma notificação explícita: '🚀 Progresso registrado! Item recuperado', reforçando seu senso de realização.",
+            "🛡️ <b>Sanity Check (Blindagem):</b> Implementamos uma rotina silenciosa de 'faxina de dados'. Ao iniciar, o sistema verifica e corrige automaticamente formatos antigos de versículos, garantindo que atualizações futuras nunca quebrem sua conta."
+        ]
+    },
+    {
         version: "1.1.3",
         date: "2025-12-21",
         title: "Interação Inteligente & Refino Visual",
