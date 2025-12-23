@@ -1,15 +1,16 @@
-// app.js - NeuroBible Core Logic (Atualizado v1.1.4)
+// app.js - NeuroBible Core Logic (Atualizado v1.1.4 + Edit Mode)
 
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
-    verses: [], // { id, ref, text, mnemonic, startDate, dates: [], lastInteraction: null }
+    verses: [], // { id, ref, text, mnemonic, explanation, startDate, dates: [], lastInteraction: null }
     settings: { planInterval: 1 }, // 1=Diário, 2=Alternado, 3=Leve
     stats: { streak: 0, lastLogin: null } // Controle de Constância
 };
 
-// Variáveis Globais de Controle da Revisão
+// Variáveis Globais de Controle
 let currentReviewId = null;
 let cardStage = 0; // -1: Mnemônica, 0: Iniciais (Hard), 1: Lacunas (Medium)
+let editingVerseId = null; // NOVO: Controla qual ID está sendo editado
 
 // --- ÍCONES SVG PARA UI DINÂMICA ---
 const ICONS = {
@@ -17,22 +18,26 @@ const ICONS = {
     bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
 };
 
-// --- NOVO: SANITY CHECK (Migração de Dados v1.1.4) ---
+// --- SANITY CHECK (Migração de Dados) ---
 function runSanityCheck() {
     let dataChanged = false;
-    // Garante que 'verses' existe
     if (!appData.verses) appData.verses = [];
 
     appData.verses.forEach(v => {
-        // Migração v1.1.4: Garante que lastInteraction existe para evitar erros
+        // Migração v1.1.4: Garante lastInteraction
         if (!v.hasOwnProperty('lastInteraction')) {
             v.lastInteraction = null;
+            dataChanged = true;
+        }
+        // Migração Edit Mode: Garante explanation
+        if (!v.hasOwnProperty('explanation')) {
+            v.explanation = '';
             dataChanged = true;
         }
     });
 
     if (dataChanged) {
-        console.log('[System] Migração de dados (Sanity Check v1.1.4) realizada.');
+        console.log('[System] Migração de dados (Sanity Check) realizada.');
         saveToStorage();
     }
 }
@@ -47,16 +52,15 @@ window.onload = function() {
 
     initChangelog();
     loadFromStorage();
-    runSanityCheck(); // <--- Executa a limpeza e migração antes de renderizar
+    runSanityCheck(); 
     
-    // Define data de hoje (DATA LOCAL, NÃO UTC)
+    // Define data de hoje
     const today = new Date();
     const startDateInput = document.getElementById('startDate');
     if(startDateInput) startDateInput.value = getLocalDateISO(today);
     
-    // Listeners para o Painel de Previsão (Reatividade)
+    // Listeners Reativos
     const refInput = document.getElementById('ref');
-    
     if(startDateInput) startDateInput.addEventListener('change', updatePreviewPanel);
     if(refInput) refInput.addEventListener('input', updatePreviewPanel);
 
@@ -67,26 +71,23 @@ window.onload = function() {
     updatePacingUI();
     renderDashboard(); 
 
-    // --- LÓGICA DA SPLASH SCREEN (v1.1.4) ---
+    // --- SPLASH SCREEN ---
     const splash = document.getElementById('splashScreen');
     const versionLabel = document.getElementById('splashVersion');
     
-    // Atualiza o texto da versão na Splash baseado no changelog.js
     if(versionLabel && window.neuroChangelog && window.neuroChangelog.length > 0) {
         versionLabel.innerText = `v${window.neuroChangelog[0].version}`;
     }
 
-    // Remove a splash após 1.5s (Tempo de branding)
     setTimeout(() => {
         if(splash) splash.classList.add('hidden');
-        // Remove do DOM totalmente após a transição CSS (0.6s) terminar
         setTimeout(() => { if(splash) splash.style.display = 'none'; }, 600);
     }, 1500);
 };
 
 function saveToStorage() {
     localStorage.setItem('neuroBibleData', JSON.stringify(appData));
-    updateRadar(); // Mantém o radar sincronizado
+    updateRadar();
 }
 
 function loadFromStorage() {
@@ -113,10 +114,7 @@ function getLocalDateISO(dateObj) {
 
 function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
-    
-    // Ciclo de Retenção: 0 (Hoje), 1, 3, 7, 14, 21, 30, 60 dias
     const intervals = [0, 1, 3, 7, 14, 21, 30, 60];
-    
     const dates = [];
     const start = new Date(startDateStr + 'T00:00:00'); 
 
@@ -128,25 +126,17 @@ function calculateSRSDates(startDateStr) {
     return dates;
 }
 
-// NOVA FUNÇÃO: Registro de Interação (Atualizada com Feedback Inteligente v1.1.4)
 function registerInteraction(verse) {
     const todayISO = getLocalDateISO(new Date());
-    
-    // Verifica SE estava atrasado ANTES de registrar a interação
-    // Definição de atrasado: Tem data no passado E não teve interação hoje
     const wasOverdue = verse.dates.some(d => d < todayISO) && verse.lastInteraction !== todayISO;
 
-    // Só salva se a data for diferente para evitar escritas desnecessárias
     if (verse.lastInteraction !== todayISO) {
         verse.lastInteraction = todayISO;
         saveToStorage();
-        // Salvar na nuvem se disponível
         if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
         
-        // Atualiza UI imediatamente para refletir a saída dos atrasados
         renderDashboard(); 
 
-        // FEEDBACK VISUAL (UX) - Apenas se recuperou um atrasado
         if (wasOverdue) {
             showToast("🚀 Progresso registrado! Item recuperado.", "success");
         }
@@ -162,18 +152,15 @@ function updateRadar() {
 
     const startDateEl = document.getElementById('startDate');
     const startDateInput = startDateEl ? startDateEl.value : null;
-    
     const currentPreviewDates = startDateInput ? calculateSRSDates(startDateInput) : [];
     const loadMap = {};
 
-    // A. Somar Carga Histórica
     appData.verses.forEach(v => {
         v.dates.forEach(d => {
             loadMap[d] = (loadMap[d] || 0) + 1;
         });
     });
 
-    // B. Somar Carga Preview
     const refEl = document.getElementById('ref');
     const isPreviewActive = refEl && refEl.value.trim() !== "";
     
@@ -183,7 +170,6 @@ function updateRadar() {
         });
     }
 
-    // C. Verificação de Carga de HOJE
     const todayStr = getLocalDateISO(new Date());
     const todayLoad = loadMap[todayStr] || 0;
     
@@ -198,7 +184,6 @@ function updateRadar() {
         }
     }
 
-    // D. Renderizar 63 dias
     const today = new Date();
     for (let i = 0; i < 63; i++) {
         const d = new Date(today);
@@ -265,7 +250,6 @@ function updatePacingUI() {
     if(!btn) return;
     
     const interval = appData.settings?.planInterval || 1;
-
     const planConfig = {
         1: { label: "Diário", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
         2: { label: "Alternado", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>' },
@@ -277,12 +261,9 @@ function updatePacingUI() {
     if(labelEl) labelEl.innerText = currentConfig.label;
 
     const indicatorEl = document.getElementById('activePlanIcon');
-    if(indicatorEl) {
-        indicatorEl.innerHTML = currentConfig.icon;
-        indicatorEl.title = `Modo Atual: ${currentConfig.label}`;
-    }
+    if(indicatorEl) indicatorEl.innerHTML = currentConfig.icon;
 
-    // Lógica de Bloqueio (Pacing)
+    // Lógica de Bloqueio
     let lastDate = null;
     if (appData.verses.length > 0) {
         const sorted = [...appData.verses].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
@@ -325,7 +306,8 @@ function updatePreviewPanel() {
     const panel = document.getElementById('previewPanel');
     const container = document.getElementById('previewChips');
 
-    if (!dateInput || refInput.length < 3) {
+    // No modo de edição, podemos querer ver o preview também
+    if (!dateInput || (refInput.length < 3 && !editingVerseId)) {
         if(panel) panel.style.display = 'none';
         updateRadar();
         return;
@@ -334,6 +316,9 @@ function updatePreviewPanel() {
     const futureDates = calculateSRSDates(dateInput);
     const currentLoadMap = {};
     appData.verses.forEach(v => {
+        // Exclui o próprio versículo da contagem se estiver editando (para não contar duplicado)
+        if (editingVerseId && v.id === editingVerseId) return;
+        
         v.dates.forEach(d => {
             currentLoadMap[d] = (currentLoadMap[d] || 0) + 1;
         });
@@ -373,12 +358,9 @@ window.selectPlan = function(days) {
     appData.settings.planInterval = days;
     
     saveToStorage();
-    
-    // HOOK para Firebase (Se disponível)
     if(window.saveSettingsToFirestore) {
         window.saveSettingsToFirestore(appData.settings);
     }
-
     updatePacingUI();
     closePlanModal();
     showToast(`Plano atualizado!`, 'success');
@@ -399,7 +381,6 @@ window.showToast = function(msg, type = 'success') {
     }, 4000);
 };
 
-// --- CONTROLE DOS MODAIS EXISTENTES ---
 function openRadarModal() {
     updateRadar();
     document.getElementById('radarModal').style.display = 'flex';
@@ -421,7 +402,6 @@ function generateClozeText(text) {
     }).join(' ');
 }
 
-// Helper para acrônimo (Primeiras Letras)
 function getAcronym(text) {
     return text.split(' ').map(w => {
         const firstChar = w.charAt(0);
@@ -430,12 +410,14 @@ function getAcronym(text) {
     }).join('  ');
 }
 
-// --- 5. AÇÃO PRINCIPAL E ICS ---
+// --- 5. AÇÃO PRINCIPAL E CRUD (ATUALIZADO PARA EDIÇÃO) ---
 let pendingVerseData = null;
 
+// Função chamada pelo botão "Confirmar/Gerar"
 window.processAndGenerate = function() {
     const btn = document.getElementById('btnPacing');
     if (btn && btn.classList.contains('is-blocked')) {
+        // Leve animação de bloqueio
         btn.style.transform = "scale(1.1)";
         setTimeout(() => btn.style.transform = "scale(1)", 200);
         showToast(`Respeite o intervalo do ciclo.`, 'warning');
@@ -452,8 +434,6 @@ window.processAndGenerate = function() {
     }
 
     const reviewDates = calculateSRSDates(startDate);
-
-    // Verificação de Sobrecarga
     const overloadLimit = 5;
     const loadMap = getCurrentLoadMap();
     const congestedDates = reviewDates.filter(d => (loadMap[d] || 0) >= overloadLimit);
@@ -470,17 +450,119 @@ window.processAndGenerate = function() {
     finalizeSave(ref, text, startDate, reviewDates);
 };
 
+// --- NOVA LÓGICA DE EDIÇÃO (Prioridade 1) ---
+
+window.startEdit = function(id) {
+    const verse = appData.verses.find(v => v.id === id);
+    if(!verse) return;
+
+    editingVerseId = id;
+
+    // Popula formulário com Highlight
+    const formFields = ['ref', 'startDate', 'mnemonic', 'explanation', 'text'];
+    formFields.forEach(fieldId => {
+        const el = document.getElementById(fieldId);
+        if(el) {
+            el.value = verse[fieldId] || '';
+            el.classList.add('editing-highlight');
+        }
+    });
+
+    // Alterna botões
+    const btnCreate = document.getElementById('btnCreate');
+    const btnControls = document.getElementById('editControls');
+    
+    if(btnCreate) btnCreate.style.display = 'none';
+    if(btnControls) btnControls.style.display = 'flex';
+
+    // UX: Scroll e Feedback
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast('Modo de Edição Ativo ✏️', 'warning');
+    
+    // Atualiza preview com os dados atuais
+    updatePreviewPanel();
+};
+
+window.saveEdit = function() {
+    if(!editingVerseId) return;
+    
+    const verseIndex = appData.verses.findIndex(v => v.id === editingVerseId);
+    if(verseIndex === -1) return;
+
+    // Captura dados
+    const ref = document.getElementById('ref').value.trim();
+    const text = document.getElementById('text').value.trim();
+    const mnemonic = document.getElementById('mnemonic').value.trim();
+    const explanation = document.getElementById('explanation').value.trim();
+    const startDate = document.getElementById('startDate').value;
+
+    if (!ref || !startDate) return showToast("Dados incompletos.", "error");
+
+    // Lógica Inteligente de Data
+    let dates = appData.verses[verseIndex].dates;
+    // Só recalcula SRS se a data de início mudou (Evita resetar progresso por typo)
+    if(startDate !== appData.verses[verseIndex].startDate) {
+        dates = calculateSRSDates(startDate);
+    }
+
+    // Atualiza Objeto
+    const updatedVerse = {
+        ...appData.verses[verseIndex],
+        ref, text, mnemonic, explanation, startDate, dates
+    };
+    appData.verses[verseIndex] = updatedVerse;
+
+    saveToStorage();
+    if (window.saveVerseToFirestore) window.saveVerseToFirestore(updatedVerse);
+
+    cancelEdit(); // Finaliza e limpa
+    updateTable();
+    renderDashboard();
+    updateRadar();
+    showToast('Versículo atualizado com sucesso!', 'success');
+};
+
+window.cancelEdit = function() {
+    editingVerseId = null;
+
+    // Limpa campos e remove Highlight
+    const formFields = ['ref', 'startDate', 'mnemonic', 'explanation', 'text'];
+    formFields.forEach(fieldId => {
+        const el = document.getElementById(fieldId);
+        if(el) {
+            el.value = '';
+            el.classList.remove('editing-highlight');
+        }
+    });
+
+    // Reseta Data para Hoje
+    const startDateInput = document.getElementById('startDate');
+    if(startDateInput) startDateInput.value = getLocalDateISO(new Date());
+
+    // Restaura Botões
+    const btnCreate = document.getElementById('btnCreate');
+    const btnControls = document.getElementById('editControls');
+    
+    if(btnCreate) btnCreate.style.display = 'flex'; // Volta ao flex original do btn-main
+    if(btnControls) btnControls.style.display = 'none';
+
+    updatePreviewPanel();
+};
+
+// Função Final de Salvamento (Criação)
 function finalizeSave(ref, text, startDate, reviewDates) {
     const mnemonic = document.getElementById('mnemonic').value.trim();
+    const explanation = document.getElementById('explanation').value.trim(); // NOVO CAMPO
 
     const newVerse = {
         id: Date.now(),
         ref: ref,
         text: text,
-        mnemonic: mnemonic, // Salva a mnemônica
+        mnemonic: mnemonic,
+        explanation: explanation, 
         startDate: startDate,
         dates: reviewDates,
-        lastInteraction: null // Inicializa rastreio de interação
+        lastInteraction: null 
     };
     appData.verses.push(newVerse);
     saveToStorage();
@@ -496,9 +578,11 @@ function finalizeSave(ref, text, startDate, reviewDates) {
 
     generateICSFile(newVerse, reviewDates);
 
+    // Limpeza de formulário
     document.getElementById('ref').value = '';
     document.getElementById('text').value = '';
     document.getElementById('mnemonic').value = '';
+    document.getElementById('explanation').value = '';
     updatePreviewPanel();
     
     showToast(`"${ref}" agendado com sucesso!`, 'success');
@@ -517,7 +601,7 @@ window.closeConflictModal = function() {
     pendingVerseData = null;
 };
 
-// Algoritmo Recursivo para achar dia livre (Usado também no Smart Recovery)
+// Algoritmo Recursivo para achar dia livre
 function findNextLightDay(dateStr) {
     const limit = 5;
     const loadMap = getCurrentLoadMap();
@@ -593,7 +677,6 @@ function generateICSFile(verseData, dates) {
     document.body.removeChild(link);
 }
 
-// Utilitário importante para sanear textos do ICS
 function escapeICS(str) {
     if (!str) return '';
     return str.replace(/\\/g, '\\\\')
@@ -604,7 +687,6 @@ function escapeICS(str) {
 
 // --- 6. SISTEMA DE FLASHCARDS AVANÇADO (NEURO UPGRADE) ---
 
-// Abre a revisão diária com Embaralhamento (Interleaving)
 function openDailyReview(dateStr) {
     let versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
     
@@ -633,7 +715,6 @@ function openDailyReview(dateStr) {
     modal.style.display = 'flex';
 }
 
-// Inicia o card com Lógica Inteligente de Mnemônica
 function startFlashcard(verseId) {
     currentReviewId = verseId;
     const verse = appData.verses.find(v => v.id === verseId);
@@ -643,49 +724,65 @@ function startFlashcard(verseId) {
     document.getElementById('flashcardContainer').style.display = 'block';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
     
-    document.getElementById('cardRef').innerText = verse.ref; // Frente
-    document.getElementById('cardRefBack').innerText = verse.ref; // Verso
+    document.getElementById('cardRef').innerText = verse.ref; 
+    document.getElementById('cardRefBack').innerText = verse.ref; 
     document.getElementById('cardFullText').innerText = verse.text;
     
-    // Verifica se existe conteúdo real no campo mnemônica
-    const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
+    // Reseta display de explicação (garantia)
+    document.getElementById('explanationContainer').style.display = 'none';
 
-    // Se tiver mnemônica, começa no -1. Se não, começa no 0
+    const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
     cardStage = hasMnemonic ? -1 : 0;
     
     renderCardContent(verse);
     updateHintButtonUI(); 
 }
 
-// Renderiza o conteúdo da frente baseado no estágio (Scaffolding)
+// Renderiza o conteúdo (Atualizado com lógica de Explicação)
 function renderCardContent(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
     const mnemonicText = document.getElementById('cardMnemonicText');
     const refEl = document.getElementById('cardRef');
+    const explContainer = document.getElementById('explanationContainer');
+    const explText = document.getElementById('cardExplanationText');
 
     // Reset Display
     contentEl.classList.remove('blur-text');
     mnemonicBox.style.display = 'none';
+    explContainer.style.display = 'none'; // Reseta container de explicação
 
     if (cardStage === -1) {
-        // --- ESTÁGIO -1: MNEMÔNICA (Ancoragem) ---
+        // --- ESTÁGIO -1: MNEMÔNICA ---
         refEl.style.display = 'none';
         mnemonicBox.style.display = 'block';
         mnemonicText.innerText = verse.mnemonic;
         
-        // Renderiza o acrônimo BORRADO ao fundo para contexto visual
+        // Verifica se existe explicação para mostrar o botão
+        if (verse.explanation && verse.explanation.trim() !== '') {
+            const explHTML = `
+                <button class="btn-reveal-expl" onclick="document.getElementById('explanationContainer').style.display='block'; this.style.display='none'">
+                    🤔 Não entendi a cena? Ver explicação
+                </button>
+            `;
+            // Adiciona botão se não existir
+            if (!mnemonicText.innerHTML.includes('btn-reveal-expl')) {
+                mnemonicText.insertAdjacentHTML('beforeend', explHTML);
+            }
+            explText.innerText = verse.explanation;
+        }
+
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode blur-text'; 
     } 
     else if (cardStage === 0) {
-        // --- ESTÁGIO 0: ACRÔNIMO (Hard) ---
+        // --- ESTÁGIO 0: ACRÔNIMO ---
         refEl.style.display = 'block';
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode';
     } 
     else if (cardStage === 1) {
-        // --- ESTÁGIO 1: CLOZE (Medium) ---
+        // --- ESTÁGIO 1: CLOZE ---
         refEl.style.display = 'block';
         const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
         contentEl.innerHTML = `"${clozeHTML}"`;
@@ -693,18 +790,17 @@ function renderCardContent(verse) {
     }
 }
 
-// Transição Progressiva (-1 -> 0 -> 1) com Registro de Interação (Prioridade 1)
 window.showHintStage = function() {
     const verse = appData.verses.find(v => v.id === currentReviewId);
     
     if (cardStage === -1) {
-        cardStage = 0; // Vai da Mnemônica para o Acrônimo
+        cardStage = 0; 
     } else if (cardStage === 0) {
-        cardStage = 1; // Vai do Acrônimo para Lacunas
+        cardStage = 1; 
     }
     
     if(verse) {
-        registerInteraction(verse); // REGISTRA ESFORÇO DO USUÁRIO
+        registerInteraction(verse); 
         renderCardContent(verse);
     }
     updateHintButtonUI();
@@ -738,13 +834,11 @@ window.closeReview = function() {
     document.getElementById('reviewModal').style.display = 'none';
 };
 
-// Feedback com Registro de Interação (Prioridade 1)
 window.handleDifficulty = function(level) {
     const verseIndex = appData.verses.findIndex(v => v.id === currentReviewId);
     if (verseIndex === -1) return;
     const verse = appData.verses[verseIndex];
 
-    // REGISTRA INTERAÇÃO INDEPENDENTE DO RESULTADO
     registerInteraction(verse);
 
     if (level === 'hard') {
@@ -788,13 +882,11 @@ window.handleDifficulty = function(level) {
     backToList();
 };
 
-// --- DASHBOARD (Painel do Dia) - ATUALIZADO COM ÍCONE SVG E FILTRO (Prioridade 2 & 3) ---
+// --- DASHBOARD ---
 function renderDashboard() {
     const dash = document.getElementById('todayDashboard');
     const list = document.getElementById('todayList');
     const countEl = document.getElementById('todayCount');
-    
-    // Novos elementos do Painel de Atrasados
     const overduePanel = document.getElementById('overduePanel');
     const overdueList = document.getElementById('overdueList');
     const overdueCount = document.getElementById('overdueCount');
@@ -803,25 +895,20 @@ function renderDashboard() {
 
     const todayStr = getLocalDateISO(new Date());
     
-    // 1. Lógica Atrasados REFINADA: 
-    // Data agendada menor que hoje E nenhuma interação registrada hoje
     const overdueVerses = appData.verses.filter(v => {
         const hasPastDate = v.dates.some(d => d < todayStr);
-        const interactedToday = v.lastInteraction === todayStr; // Verifica a propriedade nova
+        const interactedToday = v.lastInteraction === todayStr; 
         return hasPastDate && !interactedToday;
     });
 
-    // 2. Lógica Hoje: Se tiver data IGUAL a hoje
     const todayVerses = appData.verses.filter(v => v.dates.includes(todayStr));
 
     dash.style.display = 'block';
 
-    // RENDERIZAR ATRASADOS (Com Ícone SVG Novo)
     if (overdueVerses.length > 0 && overduePanel) {
         overduePanel.style.display = 'block';
         if(overdueCount) overdueCount.innerText = overdueVerses.length;
         
-        // Ícone SVG Delicado (Clock Alert) - Cor harmonizada com texto de erro
         const overdueIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px; vertical-align:text-bottom;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 
         if(overdueList) {
@@ -841,7 +928,6 @@ function renderDashboard() {
         overduePanel.style.display = 'none';
     }
 
-    // RENDERIZAR HOJE
     countEl.innerText = todayVerses.length;
     
     if(todayVerses.length === 0) {
@@ -865,9 +951,8 @@ window.startFlashcardFromDash = function(id) {
     startFlashcard(id);
 };
 
-// --- 7. HISTÓRICO & GESTÃO DE DADOS (V2 EXPANDED) ---
+// --- 7. HISTÓRICO & GESTÃO DE DADOS (Atualizado com Edição) ---
 
-// ATUALIZADO: Renderiza na nova estrutura de tabela
 function updateTable() {
     const tbody = document.getElementById('historyTableBody');
     if(!tbody) return;
@@ -879,23 +964,25 @@ function updateTable() {
 
     [...appData.verses].reverse().forEach(v => {
         const tr = document.createElement('tr');
+        // Adicionado botão de edição ✎ (edit-btn)
         tr.innerHTML = `
             <td><strong>${v.ref}</strong></td>
             <td>${v.startDate.split('-').reverse().join('/')}</td>
-            <td><button class="delete-btn" onclick="deleteVerse(${v.id})">x</button></td>
+            <td>
+                <button class="edit-btn" onclick="startEdit(${v.id})">✎</button>
+                <button class="delete-btn" onclick="deleteVerse(${v.id})">x</button>
+            </td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// NOVO: Toggle da Gaveta de Histórico
 window.toggleHistory = function() {
     const section = document.getElementById('historySection');
     const searchBox = document.getElementById('historySearchBox');
     
     section.classList.toggle('collapsed');
     
-    // UX: Foca no input se abrir, limpa se fechar
     if (!section.classList.contains('collapsed')) {
         searchBox.style.display = 'block';
         setTimeout(() => document.getElementById('searchHistory').focus(), 100);
@@ -904,7 +991,6 @@ window.toggleHistory = function() {
     }
 };
 
-// NOVO: Filtro de Busca (Otimizado)
 window.filterHistory = function() {
     const term = document.getElementById('searchHistory').value.toLowerCase();
     const rows = document.querySelectorAll('#historyTable tbody tr');
@@ -912,7 +998,7 @@ window.filterHistory = function() {
     const noResult = document.getElementById('noResultsMsg');
 
     rows.forEach(row => {
-        const refText = row.cells[0].innerText.toLowerCase(); // Coluna Referência
+        const refText = row.cells[0].innerText.toLowerCase(); 
         if (refText.includes(term)) {
             row.style.display = '';
             visibleCount++;
@@ -931,6 +1017,9 @@ let verseIndexBackup = -1;
 
 window.deleteVerse = function(id) {
     if (undoTimer) clearTimeout(undoTimer);
+    
+    // Se estiver editando este item, cancela a edição
+    if (editingVerseId === id) cancelEdit();
 
     const index = appData.verses.findIndex(v => v.id === id);
     if (index === -1) return;
