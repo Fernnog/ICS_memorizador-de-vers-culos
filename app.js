@@ -1,4 +1,4 @@
-// app.js - NeuroBible Core Logic (Atualizado v1.1.4 + Edit Mode)
+// app.js - NeuroBible Core Logic (Atualizado v1.1.5 + Fluxo de Explicação)
 
 // --- 1. GESTÃO DE ESTADO (Model) ---
 let appData = {
@@ -10,7 +10,8 @@ let appData = {
 // Variáveis Globais de Controle
 let currentReviewId = null;
 let cardStage = 0; // -1: Mnemônica, 0: Iniciais (Hard), 1: Lacunas (Medium)
-let editingVerseId = null; // NOVO: Controla qual ID está sendo editado
+let isExplanationActive = false; // NOVO: Controla se a explicação da cena está visível
+let editingVerseId = null; // Controla qual ID está sendo editado
 
 // --- ÍCONES SVG PARA UI DINÂMICA ---
 const ICONS = {
@@ -733,6 +734,7 @@ function startFlashcard(verseId) {
 
     const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
     cardStage = hasMnemonic ? -1 : 0;
+    isExplanationActive = false; // RESETAR AQUI
     
     renderCardContent(verse);
     updateHintButtonUI(); 
@@ -751,25 +753,26 @@ function renderCardContent(verse) {
     contentEl.classList.remove('blur-text');
     mnemonicBox.style.display = 'none';
     explContainer.style.display = 'none'; // Reseta container de explicação
+    contentEl.style.display = 'block';
 
     if (cardStage === -1) {
         // --- ESTÁGIO -1: MNEMÔNICA ---
         refEl.style.display = 'none';
-        mnemonicBox.style.display = 'block';
-        mnemonicText.innerText = verse.mnemonic;
         
-        // Verifica se existe explicação para mostrar o botão
-        if (verse.explanation && verse.explanation.trim() !== '') {
-            const explHTML = `
-                <button class="btn-reveal-expl" onclick="document.getElementById('explanationContainer').style.display='block'; this.style.display='none'">
-                    🤔 Não entendi a cena? Ver explicação
-                </button>
-            `;
-            // Adiciona botão se não existir
-            if (!mnemonicText.innerHTML.includes('btn-reveal-expl')) {
-                mnemonicText.insertAdjacentHTML('beforeend', explHTML);
-            }
-            explText.innerText = verse.explanation;
+        // Verifica se estamos no sub-estágio de Explicação
+        if (isExplanationActive) {
+            // MOSTRA A EXPLICAÇÃO (Substituindo a Mnemônica ou Abaixo)
+            explContainer.style.display = 'block';
+            explText.innerText = verse.explanation || "Sem explicação cadastrada.";
+            
+            // Oculta a caixa de mnemônica para dar foco
+            mnemonicBox.style.display = 'none'; 
+            
+        } else {
+            // MOSTRA A MNEMÔNICA NORMAL
+            mnemonicBox.style.display = 'flex'; // Usando flex conforme atualização CSS
+            explContainer.style.display = 'none';
+            mnemonicText.innerText = verse.mnemonic;
         }
 
         contentEl.innerText = getAcronym(verse.text);
@@ -792,26 +795,46 @@ function renderCardContent(verse) {
 
 window.showHintStage = function() {
     const verse = appData.verses.find(v => v.id === currentReviewId);
-    
+    if(!verse) return;
+
     if (cardStage === -1) {
+        const hasExplanation = verse.explanation && verse.explanation.trim().length > 0;
+        
+        // SE tem explicação e ela ainda não está ativa -> Ativa Explicação (Degrau Intermediário)
+        if (hasExplanation && !isExplanationActive) {
+            isExplanationActive = true;
+            renderCardContent(verse);
+            updateHintButtonUI();
+            return; // PAUSA AQUI, não avança para o texto ainda
+        }
+        
+        // Se não tem explicação OU já mostrou -> Avança para Iniciais
         cardStage = 0; 
+        isExplanationActive = false; // Reseta para o próximo ciclo
     } else if (cardStage === 0) {
         cardStage = 1; 
     }
     
-    if(verse) {
-        registerInteraction(verse); 
-        renderCardContent(verse);
-    }
+    registerInteraction(verse); 
+    renderCardContent(verse);
     updateHintButtonUI();
 };
 
 function updateHintButtonUI() {
     const btn = document.getElementById('btnHint');
+    const verse = appData.verses.find(v => v.id === currentReviewId);
+    const hasExplanation = verse && verse.explanation && verse.explanation.trim().length > 0;
     
     if (cardStage === -1) {
         btn.style.display = 'inline-flex';
-        btn.innerHTML = `${ICONS.target} <span>Já visualizei, mostrar texto</span>`;
+        
+        if (!isExplanationActive && hasExplanation) {
+            // Estado 1: Vendo Mnemônica -> Opção: Ver Explicação
+            btn.innerHTML = `${ICONS.bulb} <span>Não entendi a cena (Ver Explicação)</span>`;
+        } else {
+            // Estado 2: Vendo Explicação (ou sem explicação) -> Opção: Ver Texto
+            btn.innerHTML = `${ICONS.target} <span>Agora entendi (Ver Texto)</span>`;
+        }
     } else if (cardStage === 0) {
         btn.style.display = 'inline-flex';
         btn.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
