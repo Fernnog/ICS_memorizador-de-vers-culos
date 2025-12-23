@@ -1,31 +1,23 @@
-// js/ui-dashboard.js
-// Responsável por renderizar listas, radar, histórico e modais informativos.
-
-import { appData, saveToStorage, getLocalDateISO } from './core.js';
+// js/ui-dashboard.js - Interface do Usuário e Visualizações
+import { getLocalDateISO, showToast } from './utils.js';
+import { appData, globalState } from './core.js';
 import { calculateSRSDates } from './srs-engine.js';
-import { startFlashcard, startFlashcardFromDash } from './flashcard.js';
+import { saveToStorage } from './storage.js'; // Para deleteVerse
+import { startFlashcard } from './flashcard.js'; // Para startFlashcardFromDash
 
-// --- Constantes de UI ---
-// Exportamos caso outros módulos precisem
-export const ICONS = {
-    target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
-    bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
-};
+// --- RADAR & CALENDÁRIO ---
 
-// --- RADAR DE CARGA ---
 export function updateRadar() {
     const grid = document.getElementById('calendarGrid');
     if (!grid) return;
     
     grid.innerHTML = '';
 
-    // Coleta dados de input (Preview)
     const startDateEl = document.getElementById('startDate');
     const startDateInput = startDateEl ? startDateEl.value : null;
     const currentPreviewDates = startDateInput ? calculateSRSDates(startDateInput) : [];
-    
-    // Mapa de Carga
     const loadMap = {};
+
     appData.verses.forEach(v => {
         v.dates.forEach(d => {
             loadMap[d] = (loadMap[d] || 0) + 1;
@@ -41,11 +33,11 @@ export function updateRadar() {
         });
     }
 
-    // Atualiza Botão do Radar no Header
     const todayStr = getLocalDateISO(new Date());
     const todayLoad = loadMap[todayStr] || 0;
-    const radarBtn = document.getElementById('btnRadar');
     
+    // Update Badge Button Radar
+    const radarBtn = document.getElementById('btnRadar');
     if (radarBtn) {
         if (todayLoad > 0) {
             radarBtn.classList.add('has-alert');
@@ -56,7 +48,6 @@ export function updateRadar() {
         }
     }
 
-    // Renderiza Grid (63 dias)
     const today = new Date();
     for (let i = 0; i < 63; i++) {
         const d = new Date(today);
@@ -70,10 +61,10 @@ export function updateRadar() {
         if (count > 0) {
             cell.style.cursor = 'pointer';
             cell.onclick = () => {
-                closeRadarModal();
-                // Import dinâmico ou callback global para evitar ciclo se necessário
-                // Aqui assumimos que openDailyReview está disponível globalmente ou importado
-                if(window.openDailyReview) window.openDailyReview(dateStr);
+                // Como closeRadarModal está no HTML onclick, podemos chamar via window ou lógica local
+                const modal = document.getElementById('radarModal');
+                if(modal) modal.style.display = 'none';
+                openDailyReview(dateStr);
             };
             cell.title = `${count} versículos para revisar`;
         }
@@ -93,18 +84,38 @@ export function updateRadar() {
     }
 }
 
-export function openRadarModal() {
-    updateRadar();
-    const modal = document.getElementById('radarModal');
-    if(modal) modal.style.display = 'flex';
+function openDailyReview(dateStr) {
+    let versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
+    
+    if (versesToReview.length === 0) return;
+
+    versesToReview = versesToReview.sort(() => Math.random() - 0.5);
+
+    const modal = document.getElementById('reviewModal');
+    const listContainer = document.getElementById('reviewList');
+    const title = document.getElementById('reviewTitle');
+    
+    document.getElementById('reviewListContainer').style.display = 'block';
+    document.getElementById('flashcardContainer').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+    
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    title.innerText = `Revisão: ${dateObj.toLocaleDateString('pt-BR')}`;
+
+    // Nota: onclick="startFlashcard(id)" no HTML string requer que startFlashcard esteja no window
+    // Isso deve ser tratado no main.js
+    listContainer.innerHTML = versesToReview.map(v => `
+        <div class="verse-item" onclick="window.startFlashcard(${v.id})">
+            <strong>${v.ref}</strong>
+            <span>▶ Treinar</span>
+        </div>
+    `).join('');
+
+    modal.style.display = 'flex';
 }
 
-export function closeRadarModal() {
-    const modal = document.getElementById('radarModal');
-    if(modal) modal.style.display = 'none';
-}
+// --- DASHBOARD DO DIA ---
 
-// --- DASHBOARD DIÁRIO ---
 export function renderDashboard() {
     const dash = document.getElementById('todayDashboard');
     const list = document.getElementById('todayList');
@@ -117,7 +128,6 @@ export function renderDashboard() {
 
     const todayStr = getLocalDateISO(new Date());
     
-    // Filtros
     const overdueVerses = appData.verses.filter(v => {
         const hasPastDate = v.dates.some(d => d < todayStr);
         const interactedToday = v.lastInteraction === todayStr; 
@@ -128,7 +138,6 @@ export function renderDashboard() {
 
     dash.style.display = 'block';
 
-    // Renderiza Atrasados
     if (overdueVerses.length > 0 && overduePanel) {
         overduePanel.style.display = 'block';
         if(overdueCount) overdueCount.innerText = overdueVerses.length;
@@ -137,7 +146,7 @@ export function renderDashboard() {
 
         if(overdueList) {
             overdueList.innerHTML = overdueVerses.map(v => `
-                <div class="dash-item overdue-item" data-id="${v.id}" style="border-left: 4px solid #c0392b;">
+                <div class="dash-item" onclick="window.startFlashcardFromDash(${v.id})" style="border-left: 4px solid #c0392b;">
                     <div style="width:100%">
                         <strong>${v.ref}</strong>
                         <div style="display:flex; align-items:center; margin-top:4px; color:#c0392b; font-size:0.85rem;">
@@ -147,17 +156,11 @@ export function renderDashboard() {
                     </div>
                 </div>
             `).join('');
-            
-            // Adiciona listeners manualmente (Module Safety)
-            document.querySelectorAll('.overdue-item').forEach(el => {
-                el.addEventListener('click', () => startFlashcardFromDash(parseInt(el.dataset.id)));
-            });
         }
     } else if (overduePanel) {
         overduePanel.style.display = 'none';
     }
 
-    // Renderiza Hoje
     countEl.innerText = todayVerses.length;
     
     if(todayVerses.length === 0) {
@@ -168,19 +171,16 @@ export function renderDashboard() {
         }
     } else {
         list.innerHTML = todayVerses.map(v => `
-            <div class="dash-item today-item" data-id="${v.id}">
+            <div class="dash-item" onclick="window.startFlashcardFromDash(${v.id})">
                 <strong>${v.ref}</strong>
                 <small style="color:var(--accent)">▶ Treinar</small>
             </div>
         `).join('');
-
-        document.querySelectorAll('.today-item').forEach(el => {
-            el.addEventListener('click', () => startFlashcardFromDash(parseInt(el.dataset.id)));
-        });
     }
 }
 
-// --- HISTÓRICO ---
+// --- HISTÓRICO E PREVIEW ---
+
 export function updateTable() {
     const tbody = document.getElementById('historyTableBody');
     if(!tbody) return;
@@ -192,57 +192,87 @@ export function updateTable() {
 
     [...appData.verses].reverse().forEach(v => {
         const tr = document.createElement('tr');
+        // Botões requerem que funções estejam no window
         tr.innerHTML = `
             <td><strong>${v.ref}</strong></td>
             <td>${v.startDate.split('-').reverse().join('/')}</td>
             <td>
-                <button class="edit-btn" data-id="${v.id}">✎</button>
-                <button class="delete-btn" data-id="${v.id}">x</button>
+                <button class="edit-btn" onclick="window.startEdit(${v.id})">✎</button>
+                <button class="delete-btn" onclick="window.deleteVerse(${v.id})">x</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
-
-    // Reattach listeners
-    // Nota: As funções startEdit e deleteVerse devem ser passadas ou estarem no window
-    // Para simplificar neste exemplo modular, assumimos que main.js delega ou usamos window
-    tbody.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.onclick = () => window.startEdit(parseInt(btn.dataset.id));
-    });
-    tbody.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.onclick = () => window.deleteVerse(parseInt(btn.dataset.id));
-    });
 }
 
-export function toggleHistory() {
-    const section = document.getElementById('historySection');
-    const searchBox = document.getElementById('historySearchBox');
+export function updatePreviewPanel() {
+    const dateEl = document.getElementById('startDate');
+    const refEl = document.getElementById('ref');
     
-    section.classList.toggle('collapsed');
-    
-    if (!section.classList.contains('collapsed')) {
-        searchBox.style.display = 'block';
-        setTimeout(() => document.getElementById('searchHistory').focus(), 100);
-    } else {
-        searchBox.style.display = 'none';
+    if(!dateEl || !refEl) return;
+
+    const dateInput = dateEl.value;
+    const refInput = refEl.value.trim();
+    const panel = document.getElementById('previewPanel');
+    const container = document.getElementById('previewChips');
+
+    if (!dateInput || (refInput.length < 3 && !globalState.editingVerseId)) {
+        if(panel) panel.style.display = 'none';
+        updateRadar();
+        return;
     }
-}
 
-export function filterHistory() {
-    const term = document.getElementById('searchHistory').value.toLowerCase();
-    const rows = document.querySelectorAll('#historyTable tbody tr');
-    let visibleCount = 0;
-    const noResult = document.getElementById('noResultsMsg');
-
-    rows.forEach(row => {
-        const refText = row.cells[0].innerText.toLowerCase(); 
-        if (refText.includes(term)) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
+    const futureDates = calculateSRSDates(dateInput);
+    const currentLoadMap = {};
+    appData.verses.forEach(v => {
+        if (globalState.editingVerseId && v.id === globalState.editingVerseId) return;
+        v.dates.forEach(d => {
+            currentLoadMap[d] = (currentLoadMap[d] || 0) + 1;
+        });
     });
 
-    if (noResult) noResult.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+    if(panel) panel.style.display = 'block';
+    
+    if(container) {
+        container.innerHTML = futureDates.map((dateStr, index) => {
+            const d = new Date(dateStr + 'T00:00:00');
+            const dayName = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+            const formattedDate = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            
+            const load = currentLoadMap[dateStr] || 0;
+            const isOverloaded = load >= 5; 
+            const chipClass = isOverloaded ? 'date-chip is-overloaded' : 'date-chip';
+            
+            return `<span class="${chipClass}">Rev ${index+1}: ${dayName} ${formattedDate}</span>`;
+        }).join('');
+    }
+    updateRadar();
+}
+
+export function updatePacingUI() {
+    const btn = document.getElementById('btnPacing');
+    if(!btn) return;
+    
+    const interval = appData.settings?.planInterval || 1;
+    const planConfig = {
+        1: { label: "Diário", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
+        2: { label: "Alternado", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>' },
+        3: { label: "Modo Leve", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>' }
+    };
+
+    const currentConfig = planConfig[interval] || planConfig[1];
+    const labelEl = document.getElementById('currentPlanLabel');
+    if(labelEl) labelEl.innerText = currentConfig.label;
+
+    const indicatorEl = document.getElementById('activePlanIcon');
+    if(indicatorEl) indicatorEl.innerHTML = currentConfig.icon;
+    
+    // ... Lógica de bloqueio (simplificada para o exemplo) ...
+    // Se necessário, adicionar lógica de comparação de datas aqui
+}
+
+// Wrapper para startFlashcardFromDash (usado no dashboard)
+export function startFlashcardFromDash(id) {
+    document.getElementById('reviewModal').style.display = 'flex';
+    startFlashcard(id);
 }
