@@ -1,37 +1,34 @@
-// js/core.js - Gerenciamento de Estado e Configurações Globais
+// js/core.js - Gestão de Estado Global e Inicialização
+import { getLocalDateISO } from './utils.js';
+import { loadFromStorage, saveToStorage } from './storage.js'; // Assumindo que storage.js existe conforme plano
 
-// --- GESTÃO DE ESTADO (Model) ---
+// --- 1. ESTADO GLOBAL (Singleton) ---
 export let appData = {
-    verses: [], // { id, ref, text, mnemonic, explanation, startDate, dates: [], lastInteraction: null }
+    verses: [], 
     settings: { planInterval: 1 }, // 1=Diário, 2=Alternado, 3=Leve
-    stats: { streak: 0, lastLogin: null } // Controle de Constância
+    stats: { streak: 0, lastLogin: null }
 };
 
-// Variáveis de Controle de Fluxo
-export const state = {
-    currentReviewId: null,
-    cardStage: 0, // -1: Mnemônica, 0: Iniciais (Hard), 1: Lacunas (Medium)
-    isExplanationActive: false, // Controla se a explicação da cena está visível
-    editingVerseId: null, // Controla qual ID está sendo editado
-    pendingVerseData: null // Dados temporários para conflito de agenda
+// Variáveis de Controle de UI que precisam ser acessadas globalmente
+export let globalState = {
+    editingVerseId: null
 };
 
-// --- ÍCONES SVG COMPARTILHADOS ---
-export const ICONS = {
-    target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
-    bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
-};
+// --- 2. INICIALIZAÇÃO E MIGRAÇÃO ---
 
-// --- SETTERS PARA ATUALIZAR ESTADO (Helper para imports) ---
-export function setAppData(newData) {
-    // Mantém a referência do objeto, mas atualiza propriedades
-    if (newData.verses) appData.verses = newData.verses;
-    if (newData.settings) appData.settings = newData.settings;
-    if (newData.stats) appData.stats = newData.stats;
+export function initApp() {
+    loadFromStorage();
+    runSanityCheck();
+    checkStreak();
+    
+    // Inicializa inputs de data com hoje (UX)
+    const startDateInput = document.getElementById('startDate');
+    if (startDateInput) {
+        startDateInput.value = getLocalDateISO(new Date());
+    }
 }
 
-// --- SANITY CHECK (Migração de Dados) ---
-export function runSanityCheck() {
+function runSanityCheck() {
     let dataChanged = false;
     if (!appData.verses) appData.verses = [];
 
@@ -41,21 +38,44 @@ export function runSanityCheck() {
             v.lastInteraction = null;
             dataChanged = true;
         }
-        // Migração Edit Mode: Garante explanation
+        // Migração v1.1.5: Garante explanation e mnemonic
         if (!v.hasOwnProperty('explanation')) {
             v.explanation = '';
             dataChanged = true;
         }
+        if (!v.hasOwnProperty('mnemonic')) {
+            v.mnemonic = ''; // Garante campo para evitar undefined
+            dataChanged = true;
+        }
     });
 
-    return dataChanged;
+    if (dataChanged) {
+        console.log('[System] Migração de dados (Sanity Check) realizada.');
+        saveToStorage();
+    }
 }
 
-// --- REGISTRO DO SERVICE WORKER ---
-export function initServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('[System] SW registrado:', reg.scope))
-            .catch(err => console.error('[System] Falha no SW:', err));
+function checkStreak() {
+    const today = getLocalDateISO(new Date());
+    if (!appData.stats) appData.stats = { streak: 0, lastLogin: null };
+    
+    const lastLogin = appData.stats.lastLogin;
+    
+    if (lastLogin !== today) {
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayStr = getLocalDateISO(yesterdayDate);
+
+        if (lastLogin === yesterdayStr) {
+            appData.stats.streak++;
+        } else if (lastLogin < yesterdayStr) {
+            appData.stats.streak = 1;
+        }
+        
+        appData.stats.lastLogin = today;
+        saveToStorage();
     }
+    
+    const badge = document.getElementById('streakBadge');
+    if(badge) badge.innerText = `🔥 ${appData.stats.streak}`;
 }
