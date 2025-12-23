@@ -1,10 +1,7 @@
-// js/srs-engine.js - Motor de Repetição Espaçada e Arquivos
-import { getLocalDateISO, generateClozeText, escapeICS, showToast } from './utils.js';
-import { appData } from './core.js';
-import { saveToStorage } from './storage.js';
+// js/srs-engine.js
+import { getLocalDateISO, generateClozeText, escapeICS } from './utils.js';
 
-// --- CÁLCULOS SRS ---
-
+// Calcula as datas de revisão baseadas na data de início
 export function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
     const intervals = [0, 1, 3, 7, 14, 21, 30, 60];
@@ -19,10 +16,18 @@ export function calculateSRSDates(startDateStr) {
     return dates;
 }
 
-// Algoritmo Recursivo para achar dia livre (Load Management)
-export function findNextLightDay(dateStr) {
+// Algoritmo Recursivo para achar dia livre (Smart Reschedule)
+export function findNextLightDay(dateStr, appData) {
     const limit = 5;
-    const loadMap = getCurrentLoadMap();
+    const loadMap = {};
+    
+    // Constrói mapa de carga atual
+    appData.verses.forEach(v => {
+        v.dates.forEach(d => {
+            loadMap[d] = (loadMap[d] || 0) + 1;
+        });
+    });
+
     let current = new Date(dateStr + 'T00:00:00');
     
     for(let i=0; i<30; i++) {
@@ -35,41 +40,7 @@ export function findNextLightDay(dateStr) {
     return dateStr;
 }
 
-function getCurrentLoadMap() {
-    const map = {};
-    if (!appData.verses) return map;
-    
-    appData.verses.forEach(v => {
-        v.dates.forEach(d => {
-            map[d] = (map[d] || 0) + 1;
-        });
-    });
-    return map;
-}
-
-// --- LÓGICA DE INTERAÇÃO ---
-
-export function registerInteraction(verse) {
-    const todayISO = getLocalDateISO(new Date());
-    const wasOverdue = verse.dates.some(d => d < todayISO) && verse.lastInteraction !== todayISO;
-
-    if (verse.lastInteraction !== todayISO) {
-        verse.lastInteraction = todayISO;
-        saveToStorage();
-        
-        // Sync Cloud (Opcional, se existir a função global ou importada)
-        if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
-
-        if (wasOverdue) {
-            showToast("🚀 Progresso registrado! Item recuperado.", "success");
-        }
-        return true; // Indica que houve atualização
-    }
-    return false;
-}
-
-// --- GERAÇÃO DE ICS (AGENDA) ---
-
+// Geração de Arquivo .ICS
 export function generateICSFile(verseData, dates) {
     const uidBase = verseData.id;
     const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
