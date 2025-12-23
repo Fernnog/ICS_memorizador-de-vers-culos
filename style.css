@@ -228,7 +228,7 @@ input, textarea {
 input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 
-/* UX: Destaque de Edição (Prioridade 2) */
+/* UX: Destaque de Edição */
 .editing-highlight {
     border-color: var(--warning-text) !important;
     background-color: #fffdf9 !important;
@@ -296,7 +296,6 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 }
 
 /* --- HISTÓRICO V2 (EXPANSÍVEL & SEARCH) --- */
-/* Prioridade 1 e 3 */
 
 .history-section {
     margin-top: 30px;
@@ -374,7 +373,7 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     background: var(--white);
 }
 
-/* Scroll Inteligente (Prioridade 3) */
+/* Scroll Inteligente */
 .table-scroll-container {
     max-height: 300px; /* Limita altura para teclado não cobrir tudo */
     overflow-y: auto;
@@ -392,7 +391,7 @@ th { text-align: left; background: var(--hover-bg); padding: 10px; border-bottom
 td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); }
 .delete-btn { color: #e74c3c; cursor: pointer; font-weight: bold; border:none; background:none;}
 
-/* --- NOVA FEATURE: Botão de Edição na Tabela (Prioridade 1) --- */
+/* Botão de Edição na Tabela */
 .edit-btn {
     color: var(--accent);
     cursor: pointer;
@@ -547,7 +546,53 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 100%;
 }
 
-/* Botão de Dica (MODIFICADO PARA SVG) */
+/* --- v1.1.6: ANIMAÇÕES & FLUIDEZ --- */
+/* Suavização visual para troca de conteúdo no card */
+.card-content-transition {
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.card-content-hidden {
+    opacity: 0;
+    transform: translateY(5px); /* Leve movimento para baixo ao sair */
+}
+
+/* --- v1.1.6: CONTROLES BIFURCADOS (Quick Skip) --- */
+.hint-controls-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Espaço vertical entre os botões */
+    width: 100%;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Estilo para o Botão Secundário (Pular Explicação / Ver Explicação) */
+.btn-ghost-accent {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid transparent;
+    font-size: 0.85rem;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+.btn-ghost-accent:hover {
+    opacity: 1;
+    background: rgba(52, 152, 219, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Botão de Dica (Padrão) */
 .btn-hint {
     background: transparent;
     border: 1px dashed var(--accent);
@@ -578,7 +623,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 100%;
 }
 
-/* Botões de Feedback (MODIFICADO PARA SVG) */
+/* Botões de Feedback */
 .btn-feedback {
     flex: 1; 
     padding: 12px; 
@@ -680,7 +725,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 
 
 /* =========================================
-   NOVAS FUNCIONALIDADES: PACING & STREAK
+   FUNCIONALIDADES: PACING & STREAK
    ========================================= */
 
 /* Wrapper para alinhar botão e badge */
@@ -806,7 +851,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- NOVO CÓDIGO: RESPONSIVIDADE MOBILE & AUTH --- */
+/* --- RESPONSIVIDADE MOBILE & AUTH --- */
 /* Status Dot para o botão de Login */
 #authStatusDot {
     width: 8px; height: 8px;
@@ -869,7 +914,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     background: rgba(255, 255, 255, 0.4);
 }
 
-/* --- MNEMONIC STYLES (NEURO UPGRADE - CORRIGIDO) --- */
+/* --- MNEMONIC STYLES --- */
 .mnemonic-box {
     background-color: var(--hover-bg);
     border-left: 3px solid var(--accent);
@@ -903,28 +948,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     line-height: 1.5; /* Melhor leitura */
 }
 
-/* NOVO: Botão para revelar explicação (Dentro do Flashcard) */
-.btn-reveal-expl {
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-size: 0.85rem;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    cursor: pointer;
-    margin-top: 10px;
-    opacity: 0.8;
-    padding: 5px;
-    width: 100%;
-    transition: all 0.2s;
-}
-.btn-reveal-expl:hover {
-    opacity: 1;
-    color: var(--accent);
-    background: rgba(0,0,0,0.02);
-    border-radius: 4px;
-}
-
 /* Efeito de Blur para o texto de suporte (Scaffolding) */
 .blur-text {
     filter: blur(5px);
@@ -935,8 +958,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 
 /* --- SPLASH SCREEN (v1.1.4) --- */
-/* Estilos e animações para a Tela de Boas-vindas */
-
 .splash-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background-color: var(--bg); /* Usa a cor de fundo do tema (Dark/Light) */
