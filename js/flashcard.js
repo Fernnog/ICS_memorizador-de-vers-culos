@@ -1,110 +1,83 @@
-// js/flashcard.js
-// Responsável pela lógica de treino, animações e bifurcação de fluxo.
+// js/flashcard.js - Lógica de Treino, Animações e UX
+import { getAcronym, generateClozeText, getLocalDateISO, showToast } from './utils.js';
+import { appData } from './core.js';
+import { registerInteraction, findNextLightDay, calculateSRSDates } from './srs-engine.js';
+import { updateRadar, renderDashboard, updateTable } from './ui-dashboard.js';
+import { saveToStorage } from './storage.js';
 
-import { appData, registerInteraction, saveToStorage, getLocalDateISO } from './core.js';
-import { calculateSRSDates, findNextLightDay } from './srs-engine.js';
-import { ICONS, renderDashboard, updateRadar } from './ui-dashboard.js';
-import { generateClozeText, getAcronym } from './utils.js'; // Assumindo utils simples
-
-// Estado Local do Flashcard
+// --- ESTADO LOCAL DO FLASHCARD ---
 let currentReviewId = null;
 let cardStage = 0; // -1: Mnemônica, 0: Iniciais, 1: Lacunas
-let isExplanationActive = false;
+let isExplanationActive = false; 
 
-// --- CONTROLES DE ABERTURA ---
-export function openDailyReview(dateStr) {
-    let versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
-    
-    if (versesToReview.length === 0) return;
+const ICONS = {
+    target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+    bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
+};
 
-    // Embaralhamento (Interleaving)
-    versesToReview = versesToReview.sort(() => Math.random() - 0.5);
-
-    const modal = document.getElementById('reviewModal');
-    const listContainer = document.getElementById('reviewList');
-    const title = document.getElementById('reviewTitle');
-    
-    document.getElementById('reviewListContainer').style.display = 'block';
-    document.getElementById('flashcardContainer').style.display = 'none';
-    document.getElementById('flashcardInner').classList.remove('is-flipped');
-    
-    const dateObj = new Date(dateStr + 'T00:00:00');
-    title.innerText = `Revisão: ${dateObj.toLocaleDateString('pt-BR')}`;
-
-    listContainer.innerHTML = versesToReview.map(v => `
-        <div class="verse-item" data-id="${v.id}">
-            <strong>${v.ref}</strong>
-            <span>▶ Treinar</span>
-        </div>
-    `).join('');
-
-    // Listeners
-    listContainer.querySelectorAll('.verse-item').forEach(el => {
-        el.addEventListener('click', () => startFlashcard(parseInt(el.dataset.id)));
-    });
-
-    modal.style.display = 'flex';
-}
-
-export function startFlashcardFromDash(id) {
-    const modal = document.getElementById('reviewModal');
-    if(modal) modal.style.display = 'flex';
-    startFlashcard(id);
-}
+// --- CONTROLES PÚBLICOS (Para main.js expor) ---
 
 export function startFlashcard(verseId) {
     currentReviewId = verseId;
     const verse = appData.verses.find(v => v.id === verseId);
     if (!verse) return;
 
+    // UI Setup
     document.getElementById('reviewListContainer').style.display = 'none';
     document.getElementById('flashcardContainer').style.display = 'block';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
     
+    // Conteúdo Estático
     document.getElementById('cardRef').innerText = verse.ref; 
     document.getElementById('cardRefBack').innerText = verse.ref; 
     document.getElementById('cardFullText').innerText = verse.text;
     
-    // Reset de Estado
-    document.getElementById('explanationContainer').style.display = 'none';
+    // Reseta Estados
     const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
-    
     cardStage = hasMnemonic ? -1 : 0;
     isExplanationActive = false; 
     
-    // Renderiza sem fade na primeira carga
-    _internalRenderLogic(verse);
+    // Renderização Inicial (Sem animação para entrada imediata)
+    _renderInternal(verse); 
     updateHintButtonUI(); 
 }
 
-// --- CORE RENDER & FADE ANIMATION ---
+export function flipCard() {
+    document.getElementById('flashcardInner').classList.toggle('is-flipped');
+}
 
-// Wrapper com Animação (Suavização Visual)
+export function backToList() {
+    document.getElementById('reviewListContainer').style.display = 'block';
+    document.getElementById('flashcardContainer').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+}
+
+// --- LÓGICA DE RENDERIZAÇÃO COM ANIMAÇÃO (v1.1.6) ---
+
 function renderCardContentWithFade(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
     const explContainer = document.getElementById('explanationContainer');
-
+    
     // 1. Fade Out
     contentEl.classList.add('card-content-hidden');
     mnemonicBox.classList.add('card-content-hidden');
     explContainer.classList.add('card-content-hidden');
 
-    // 2. Aguarda transição e troca conteúdo
     setTimeout(() => {
-        _internalRenderLogic(verse);
-        
+        // 2. Troca de Dados
+        _renderInternal(verse);
+
         // 3. Fade In
         requestAnimationFrame(() => {
             contentEl.classList.remove('card-content-hidden');
             mnemonicBox.classList.remove('card-content-hidden');
             explContainer.classList.remove('card-content-hidden');
         });
-    }, 200); // 200ms deve bater com o CSS transition
+    }, 200); // Sincronizado com CSS transition
 }
 
-// Lógica pura de DOM (Separada da animação)
-function _internalRenderLogic(verse) {
+function _renderInternal(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
     const mnemonicText = document.getElementById('cardMnemonicText');
@@ -112,7 +85,7 @@ function _internalRenderLogic(verse) {
     const explContainer = document.getElementById('explanationContainer');
     const explText = document.getElementById('cardExplanationText');
 
-    // Reset Defaults
+    // Reset Display Básico
     contentEl.classList.remove('blur-text');
     mnemonicBox.style.display = 'none';
     explContainer.style.display = 'none';
@@ -123,13 +96,13 @@ function _internalRenderLogic(verse) {
         refEl.style.display = 'none';
         
         if (isExplanationActive) {
-            // Modo Explicação Ativa
-            explContainer.style.display = 'flex'; // Flex para layout correto
+            // Sub-estágio: Explicação
+            explContainer.style.display = 'block';
             explText.innerText = verse.explanation || "Sem explicação cadastrada.";
             mnemonicBox.style.display = 'none'; 
         } else {
-            // Modo Mnemônica Padrão
-            mnemonicBox.style.display = 'flex'; 
+            // Sub-estágio: Mnemônica Pura
+            mnemonicBox.style.display = 'flex';
             explContainer.style.display = 'none';
             mnemonicText.innerText = verse.mnemonic;
         }
@@ -138,13 +111,13 @@ function _internalRenderLogic(verse) {
         contentEl.className = 'cloze-text first-letter-mode blur-text'; 
     } 
     else if (cardStage === 0) {
-        // --- ESTÁGIO 0: ACRÔNIMO ---
+        // --- ESTÁGIO 0: ACRÔNIMO (Hard) ---
         refEl.style.display = 'block';
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode';
     } 
     else if (cardStage === 1) {
-        // --- ESTÁGIO 1: CLOZE ---
+        // --- ESTÁGIO 1: CLOZE (Medium) ---
         refEl.style.display = 'block';
         const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
         contentEl.innerHTML = `"${clozeHTML}"`;
@@ -152,137 +125,151 @@ function _internalRenderLogic(verse) {
     }
 }
 
-// --- QUICK SKIP & BIFURCAÇÃO ---
+// --- LÓGICA DE CONTROLE (BIFURCAÇÃO v1.1.6) ---
 
-export function updateHintButtonUI() {
-    const wrapper = document.getElementById('hintControlsArea');
+export function showHintStage() {
     const verse = appData.verses.find(v => v.id === currentReviewId);
-    
-    if (!wrapper || !verse) return;
-    
-    wrapper.innerHTML = ''; // Limpa botões antigos
+    if(!verse) return;
 
-    // Cenário: Estágio Mnemônica (-1)
+    // Lógica antiga de steps lineares mantida como fallback
     if (cardStage === -1) {
-        const hasExplanation = verse.explanation && verse.explanation.trim().length > 0;
-        
-        // BIFURCAÇÃO: Se tem explicação e não estou vendo ela
-        if (hasExplanation && !isExplanationActive) {
-            
-            // Botão 1: Lembrei (Pular Explicação) - Ação Rápida
-            const btnSkip = document.createElement('button');
-            btnSkip.className = 'btn-hint'; // Estilo primário
-            btnSkip.innerHTML = `${ICONS.target} <span>Lembrei! (Ver Texto)</span>`;
-            btnSkip.onclick = (e) => { e.stopPropagation(); advanceToText(); };
-            
-            // Botão 2: Esqueci (Ver Explicação) - Link Ghost
-            const btnExpl = document.createElement('button');
-            btnExpl.className = 'btn-ghost-accent'; // Estilo secundário
-            btnExpl.style.marginTop = '8px';
-            btnExpl.innerHTML = `🤔 Não entendi a cena? (Ver Explicação)`;
-            btnExpl.onclick = (e) => { e.stopPropagation(); activateExplanation(); };
-
-            wrapper.appendChild(btnSkip);
-            wrapper.appendChild(btnExpl);
-
-        } else if (isExplanationActive) {
-            // Se já estou vendo a explicação -> Único caminho é ver o texto
-            const btnNext = document.createElement('button');
-            btnNext.className = 'btn-hint';
-            btnNext.innerHTML = `${ICONS.target} <span>Agora entendi (Ver Texto)</span>`;
-            btnNext.onclick = (e) => { e.stopPropagation(); advanceToText(); };
-            wrapper.appendChild(btnNext);
-
+        // Se tinha explicação e não estava vendo, mostra explicação
+        if (verse.explanation && !isExplanationActive) {
+            isExplanationActive = true;
         } else {
-            // Sem explicação cadastrada -> Botão padrão
-            const btnNext = document.createElement('button');
-            btnNext.className = 'btn-hint';
-            btnNext.innerHTML = `${ICONS.target} <span>Ver Texto (Iniciais)</span>`;
-            btnNext.onclick = (e) => { e.stopPropagation(); advanceToText(); };
-            wrapper.appendChild(btnNext);
+            // Se já estava vendo explicação OU não tem, vai para texto
+            cardStage = 0; 
+            isExplanationActive = false;
         }
-    } 
-    else if (cardStage === 0) {
-        // Estágio Iniciais -> Pedir Dica (Cloze)
-        const btnHint = document.createElement('button');
-        btnHint.className = 'btn-hint';
-        btnHint.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
-        btnHint.onclick = (e) => { e.stopPropagation(); advanceToCloze(); };
-        wrapper.appendChild(btnHint);
-    } 
-    // Stage 1 não tem botão de dica
+    } else if (cardStage === 0) {
+        cardStage = 1; 
+    }
+    
+    registerInteraction(verse); 
+    renderCardContentWithFade(verse);
+    updateHintButtonUI();
 }
 
-// --- HELPER ACTIONS ---
+// Funções específicas da Bifurcação (Quick Skip)
+function advanceToText() {
+    const verse = appData.verses.find(v => v.id === currentReviewId);
+    if(!verse) return;
+    
+    cardStage = 0; // Pula direto para iniciais
+    isExplanationActive = false;
+    registerInteraction(verse);
+    
+    renderCardContentWithFade(verse);
+    updateHintButtonUI();
+}
 
 function activateExplanation() {
+    const verse = appData.verses.find(v => v.id === currentReviewId);
+    if(!verse) return;
+
     isExplanationActive = true;
-    const verse = appData.verses.find(v => v.id === currentReviewId);
     renderCardContentWithFade(verse);
     updateHintButtonUI();
 }
 
-function advanceToText() {
-    cardStage = 0; // Vai para Iniciais
-    isExplanationActive = false;
+// Atualização da UI dos Botões (Com suporte a Bifurcação)
+export function updateHintButtonUI() {
+    const container = document.getElementById('hintControlsArea'); // Novo container genérico
+    if (!container) return; // Fallback se HTML não atualizado
+
     const verse = appData.verses.find(v => v.id === currentReviewId);
-    registerInteraction(verse); // Conta como interação
-    renderCardContentWithFade(verse);
-    updateHintButtonUI();
+    const hasExplanation = verse && verse.explanation && verse.explanation.trim().length > 0;
+    
+    container.innerHTML = ''; // Limpa
+
+    // 1. Cenário Bifurcação: Estágio -1 COM Explicação e explicação NÃO ativa
+    if (cardStage === -1 && hasExplanation && !isExplanationActive) {
+        // Botão Principal: Pular
+        const btnSkip = document.createElement('button');
+        btnSkip.className = 'btn-hint';
+        btnSkip.innerHTML = `${ICONS.target} <span>Lembrei! (Ver Texto)</span>`;
+        btnSkip.onclick = (e) => { e.stopPropagation(); advanceToText(); };
+        
+        // Botão Secundário: Ver Explicação
+        const btnExpl = document.createElement('button');
+        btnExpl.className = 'btn-ghost-accent'; // Nova classe CSS
+        btnExpl.innerHTML = `${ICONS.bulb} <span>Esqueci a cena... Ver Explicação</span>`;
+        btnExpl.style.marginTop = '10px';
+        btnExpl.onclick = (e) => { e.stopPropagation(); activateExplanation(); };
+
+        container.appendChild(btnSkip);
+        container.appendChild(btnExpl);
+    } 
+    // 2. Cenário Padrão
+    else {
+        const btn = document.createElement('button');
+        btn.className = 'btn-hint';
+        btn.onclick = (e) => { e.stopPropagation(); showHintStage(); };
+
+        if (cardStage === -1) {
+            // Se estou vendo explicação, botão leva ao texto
+            if (isExplanationActive) {
+                 btn.innerHTML = `${ICONS.target} <span>Agora entendi (Ver Texto)</span>`;
+            } else {
+                 // Sem explicação cadastrada
+                 btn.innerHTML = `${ICONS.target} <span>Ver Texto</span>`;
+            }
+        } else if (cardStage === 0) {
+            btn.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
+        } else {
+            btn.style.display = 'none';
+        }
+        
+        if (cardStage !== 1) container.appendChild(btn);
+    }
 }
 
-function advanceToCloze() {
-    cardStage = 1; // Vai para Cloze
-    const verse = appData.verses.find(v => v.id === currentReviewId);
-    registerInteraction(verse);
-    renderCardContentWithFade(verse);
-    updateHintButtonUI();
-}
-
-// --- FLIP & FEEDBACK ---
-
-export function flipCard() {
-    document.getElementById('flashcardInner').classList.toggle('is-flipped');
-}
+// --- FEEDBACK DE DIFICULDADE (SRS) ---
 
 export function handleDifficulty(level) {
-    const verseIndex = appData.verses.findIndex(v => v.id === currentReviewId);
-    if (verseIndex === -1) return;
-    const verse = appData.verses[verseIndex];
+    const verse = appData.verses.find(v => v.id === currentReviewId);
+    if (!verse) return;
 
     registerInteraction(verse);
 
     if (level === 'hard') {
-        const todayISO = getLocalDateISO(new Date());
-        // Lógica de reset simples ou algoritmo avançado (mantendo simples para exemplo)
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = getLocalDateISO(tomorrow);
-        
-        if (!verse.dates.includes(tomorrowStr)) {
-             verse.dates.push(tomorrowStr);
-             verse.dates.sort();
-             // Assumindo window.showToast global ou importado de core
-             if(window.showToast) window.showToast('Revisão extra agendada!', 'warning');
+        const today = new Date();
+        const start = new Date(verse.startDate + 'T00:00:00');
+        const diffTime = Math.abs(today - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const isEndCycle = diffDays >= 50;
+
+        if (isEndCycle) {
+            const todayISO = getLocalDateISO(new Date());
+            verse.startDate = todayISO; 
+            verse.dates = calculateSRSDates(todayISO);
+            showToast('Ciclo final falhou. Reiniciando para consolidar.', 'warning');
+        } else {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = getLocalDateISO(tomorrow);
+            const recoveryDate = findNextLightDay(tomorrowStr);
+
+            if (!verse.dates.includes(recoveryDate)) {
+                verse.dates.push(recoveryDate);
+                verse.dates.sort();
+                
+                const d = new Date(recoveryDate + 'T00:00:00');
+                const fmtDate = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+                showToast(`Revisão extra agendada para ${fmtDate}. Sem estresse!`, 'success');
+            } else {
+                showToast('Reforço já estava agendado. Mantenha o foco!', 'warning');
+            }
         }
     } else {
-        if(window.showToast) window.showToast('Ótimo! Segue o plano.', 'success');
+        showToast('Ótimo! Segue o plano.', 'success');
     }
 
     saveToStorage();
     if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
     
+    // Atualiza todo o sistema
     updateRadar();
     renderDashboard();
     backToList();
-}
-
-export function backToList() {
-    document.getElementById('reviewListContainer').style.display = 'block';
-    document.getElementById('flashcardContainer').style.display = 'none';
-    document.getElementById('flashcardInner').classList.remove('is-flipped');
-}
-
-export function closeReview() {
-    document.getElementById('reviewModal').style.display = 'none';
 }
