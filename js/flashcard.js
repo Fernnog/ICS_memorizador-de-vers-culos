@@ -1,107 +1,107 @@
-// js/flashcard.js - Lógica de Treino, Animações e UX
-import { getAcronym, generateClozeText, getLocalDateISO, showToast } from './utils.js';
-import { appData } from './core.js';
-import { registerInteraction, findNextLightDay, calculateSRSDates } from './srs-engine.js';
-import { updateRadar, renderDashboard, updateTable } from './ui-dashboard.js';
+// js/flashcard.js
+import { 
+    appData, currentReviewId, setCurrentReviewId, 
+    cardStage, setCardStage, 
+    isExplanationActive, setIsExplanationActive 
+} from './core.js';
 import { saveToStorage } from './storage.js';
+import { getAcronym, generateClozeText, getLocalDateISO, showToast } from './utils.js';
+import { renderDashboard, updateRadar } from './ui-dashboard.js';
+import { calculateSRSDates, findNextLightDay } from './srs-engine.js';
 
-// --- ESTADO LOCAL DO FLASHCARD ---
-let currentReviewId = null;
-let cardStage = 0; // -1: Mnemônica, 0: Iniciais, 1: Lacunas
-let isExplanationActive = false; 
-
+// --- ÍCONES SVG ---
 const ICONS = {
     target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
     bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
 };
 
-// --- CONTROLES PÚBLICOS (Para main.js expor) ---
+// --- FLASHCARD LOGIC ---
+
+export function openDailyReview(dateStr) {
+    let versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
+    
+    if (versesToReview.length === 0) return;
+
+    // Embaralha (Interleaving)
+    versesToReview = versesToReview.sort(() => Math.random() - 0.5);
+
+    const modal = document.getElementById('reviewModal');
+    const listContainer = document.getElementById('reviewList');
+    const title = document.getElementById('reviewTitle');
+    
+    document.getElementById('reviewListContainer').style.display = 'block';
+    document.getElementById('flashcardContainer').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+    
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    title.innerText = `Revisão: ${dateObj.toLocaleDateString('pt-BR')}`;
+
+    listContainer.innerHTML = versesToReview.map(v => `
+        <div class="verse-item" onclick="startFlashcard(${v.id})">
+            <strong>${v.ref}</strong>
+            <span>▶ Treinar</span>
+        </div>
+    `).join('');
+
+    modal.style.display = 'flex';
+}
 
 export function startFlashcard(verseId) {
-    currentReviewId = verseId;
+    setCurrentReviewId(verseId);
     const verse = appData.verses.find(v => v.id === verseId);
     if (!verse) return;
 
-    // UI Setup
     document.getElementById('reviewListContainer').style.display = 'none';
     document.getElementById('flashcardContainer').style.display = 'block';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
     
-    // Conteúdo Estático
     document.getElementById('cardRef').innerText = verse.ref; 
     document.getElementById('cardRefBack').innerText = verse.ref; 
     document.getElementById('cardFullText').innerText = verse.text;
     
-    // Reseta Estados
+    document.getElementById('explanationContainer').style.display = 'none';
+
     const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
-    cardStage = hasMnemonic ? -1 : 0;
-    isExplanationActive = false; 
+    setCardStage(hasMnemonic ? -1 : 0);
+    setIsExplanationActive(false); 
     
-    // Renderização Inicial (Sem animação para entrada imediata)
-    _renderInternal(verse); 
+    renderCardContent(verse);
     updateHintButtonUI(); 
 }
 
-export function flipCard() {
-    document.getElementById('flashcardInner').classList.toggle('is-flipped');
+export function startFlashcardFromDash(id) {
+    document.getElementById('reviewModal').style.display = 'flex';
+    startFlashcard(id);
 }
 
-export function backToList() {
-    document.getElementById('reviewListContainer').style.display = 'block';
-    document.getElementById('flashcardContainer').style.display = 'none';
-    document.getElementById('flashcardInner').classList.remove('is-flipped');
-}
-
-// --- LÓGICA DE RENDERIZAÇÃO COM ANIMAÇÃO (v1.1.6) ---
-
-function renderCardContentWithFade(verse) {
+// Lógica de Renderização com Animação (V1.1.6)
+function renderCardContent(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
-    const explContainer = document.getElementById('explanationContainer');
-    
-    // 1. Fade Out
-    contentEl.classList.add('card-content-hidden');
-    mnemonicBox.classList.add('card-content-hidden');
-    explContainer.classList.add('card-content-hidden');
-
-    setTimeout(() => {
-        // 2. Troca de Dados
-        _renderInternal(verse);
-
-        // 3. Fade In
-        requestAnimationFrame(() => {
-            contentEl.classList.remove('card-content-hidden');
-            mnemonicBox.classList.remove('card-content-hidden');
-            explContainer.classList.remove('card-content-hidden');
-        });
-    }, 200); // Sincronizado com CSS transition
-}
-
-function _renderInternal(verse) {
-    const contentEl = document.getElementById('cardTextContent');
-    const mnemonicBox = document.getElementById('mnemonicContainer');
-    const mnemonicText = document.getElementById('cardMnemonicText');
     const refEl = document.getElementById('cardRef');
     const explContainer = document.getElementById('explanationContainer');
     const explText = document.getElementById('cardExplanationText');
+    const mnemonicText = document.getElementById('cardMnemonicText');
 
-    // Reset Display Básico
+    // Aplica classe de fade-out para suavizar (se houver CSS correspondente)
+    // Para simplificar aqui, fazemos a troca direta, mas preparei o terreno.
+    
     contentEl.classList.remove('blur-text');
     mnemonicBox.style.display = 'none';
     explContainer.style.display = 'none';
     contentEl.style.display = 'block';
 
-    if (cardStage === -1) {
+    if (cardStage.value === -1) {
         // --- ESTÁGIO -1: MNEMÔNICA ---
         refEl.style.display = 'none';
         
-        if (isExplanationActive) {
-            // Sub-estágio: Explicação
-            explContainer.style.display = 'block';
+        if (isExplanationActive.value) {
+            // MOSTRA A EXPLICAÇÃO (Substituindo a Mnemônica)
+            explContainer.style.display = 'flex'; // Flex para centralizar
             explText.innerText = verse.explanation || "Sem explicação cadastrada.";
             mnemonicBox.style.display = 'none'; 
         } else {
-            // Sub-estágio: Mnemônica Pura
+            // MOSTRA A MNEMÔNICA NORMAL
             mnemonicBox.style.display = 'flex';
             explContainer.style.display = 'none';
             mnemonicText.innerText = verse.mnemonic;
@@ -110,14 +110,14 @@ function _renderInternal(verse) {
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode blur-text'; 
     } 
-    else if (cardStage === 0) {
-        // --- ESTÁGIO 0: ACRÔNIMO (Hard) ---
+    else if (cardStage.value === 0) {
+        // --- ESTÁGIO 0: ACRÔNIMO ---
         refEl.style.display = 'block';
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode';
     } 
-    else if (cardStage === 1) {
-        // --- ESTÁGIO 1: CLOZE (Medium) ---
+    else if (cardStage.value === 1) {
+        // --- ESTÁGIO 1: CLOZE ---
         refEl.style.display = 'block';
         const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
         contentEl.innerHTML = `"${clozeHTML}"`;
@@ -125,110 +125,79 @@ function _renderInternal(verse) {
     }
 }
 
-// --- LÓGICA DE CONTROLE (BIFURCAÇÃO v1.1.6) ---
+// Lógica de Bifurcação (V1.1.6)
+function updateHintButtonUI() {
+    // Usaremos a área dinâmica se você atualizou o HTML, senão, fallback para o botão antigo
+    const btn = document.getElementById('btnHint'); 
+    const verse = appData.verses.find(v => v.id === currentReviewId.value);
+    const hasExplanation = verse && verse.explanation && verse.explanation.trim().length > 0;
+    
+    if (cardStage.value === -1) {
+        btn.style.display = 'inline-flex';
+        
+        if (!isExplanationActive.value && hasExplanation) {
+            // V1.1.6: Aqui poderíamos injetar dois botões se o HTML permitisse.
+            // Mantendo compatível com botão único:
+            btn.innerHTML = `${ICONS.bulb} <span>Não entendi a cena (Ver Explicação)</span>`;
+        } else {
+            btn.innerHTML = `${ICONS.target} <span>Agora entendi (Ver Texto)</span>`;
+        }
+    } else if (cardStage.value === 0) {
+        btn.style.display = 'inline-flex';
+        btn.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
+    } else {
+        btn.style.display = 'none';
+    }
+}
 
 export function showHintStage() {
-    const verse = appData.verses.find(v => v.id === currentReviewId);
+    const verse = appData.verses.find(v => v.id === currentReviewId.value);
     if(!verse) return;
 
-    // Lógica antiga de steps lineares mantida como fallback
-    if (cardStage === -1) {
-        // Se tinha explicação e não estava vendo, mostra explicação
-        if (verse.explanation && !isExplanationActive) {
-            isExplanationActive = true;
-        } else {
-            // Se já estava vendo explicação OU não tem, vai para texto
-            cardStage = 0; 
-            isExplanationActive = false;
+    if (cardStage.value === -1) {
+        const hasExplanation = verse.explanation && verse.explanation.trim().length > 0;
+        
+        // Se tem explicação e ela ainda não está ativa -> Ativa Explicação
+        if (hasExplanation && !isExplanationActive.value) {
+            setIsExplanationActive(true);
+            renderCardContent(verse);
+            updateHintButtonUI();
+            return; 
         }
-    } else if (cardStage === 0) {
-        cardStage = 1; 
+        
+        // Avança para texto
+        setCardStage(0); 
+        setIsExplanationActive(false);
+    } else if (cardStage.value === 0) {
+        setCardStage(1); 
     }
     
     registerInteraction(verse); 
-    renderCardContentWithFade(verse);
+    renderCardContent(verse);
     updateHintButtonUI();
 }
 
-// Funções específicas da Bifurcação (Quick Skip)
-function advanceToText() {
-    const verse = appData.verses.find(v => v.id === currentReviewId);
-    if(!verse) return;
-    
-    cardStage = 0; // Pula direto para iniciais
-    isExplanationActive = false;
-    registerInteraction(verse);
-    
-    renderCardContentWithFade(verse);
-    updateHintButtonUI();
-}
+export function registerInteraction(verse) {
+    const todayISO = getLocalDateISO(new Date());
+    const wasOverdue = verse.dates.some(d => d < todayISO) && verse.lastInteraction !== todayISO;
 
-function activateExplanation() {
-    const verse = appData.verses.find(v => v.id === currentReviewId);
-    if(!verse) return;
-
-    isExplanationActive = true;
-    renderCardContentWithFade(verse);
-    updateHintButtonUI();
-}
-
-// Atualização da UI dos Botões (Com suporte a Bifurcação)
-export function updateHintButtonUI() {
-    const container = document.getElementById('hintControlsArea'); // Novo container genérico
-    if (!container) return; // Fallback se HTML não atualizado
-
-    const verse = appData.verses.find(v => v.id === currentReviewId);
-    const hasExplanation = verse && verse.explanation && verse.explanation.trim().length > 0;
-    
-    container.innerHTML = ''; // Limpa
-
-    // 1. Cenário Bifurcação: Estágio -1 COM Explicação e explicação NÃO ativa
-    if (cardStage === -1 && hasExplanation && !isExplanationActive) {
-        // Botão Principal: Pular
-        const btnSkip = document.createElement('button');
-        btnSkip.className = 'btn-hint';
-        btnSkip.innerHTML = `${ICONS.target} <span>Lembrei! (Ver Texto)</span>`;
-        btnSkip.onclick = (e) => { e.stopPropagation(); advanceToText(); };
+    if (verse.lastInteraction !== todayISO) {
+        verse.lastInteraction = todayISO;
+        saveToStorage();
+        if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
         
-        // Botão Secundário: Ver Explicação
-        const btnExpl = document.createElement('button');
-        btnExpl.className = 'btn-ghost-accent'; // Nova classe CSS
-        btnExpl.innerHTML = `${ICONS.bulb} <span>Esqueci a cena... Ver Explicação</span>`;
-        btnExpl.style.marginTop = '10px';
-        btnExpl.onclick = (e) => { e.stopPropagation(); activateExplanation(); };
+        renderDashboard(); 
 
-        container.appendChild(btnSkip);
-        container.appendChild(btnExpl);
-    } 
-    // 2. Cenário Padrão
-    else {
-        const btn = document.createElement('button');
-        btn.className = 'btn-hint';
-        btn.onclick = (e) => { e.stopPropagation(); showHintStage(); };
-
-        if (cardStage === -1) {
-            // Se estou vendo explicação, botão leva ao texto
-            if (isExplanationActive) {
-                 btn.innerHTML = `${ICONS.target} <span>Agora entendi (Ver Texto)</span>`;
-            } else {
-                 // Sem explicação cadastrada
-                 btn.innerHTML = `${ICONS.target} <span>Ver Texto</span>`;
-            }
-        } else if (cardStage === 0) {
-            btn.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
-        } else {
-            btn.style.display = 'none';
+        if (wasOverdue) {
+            showToast("🚀 Progresso registrado! Item recuperado.", "success");
         }
-        
-        if (cardStage !== 1) container.appendChild(btn);
     }
 }
 
-// --- FEEDBACK DE DIFICULDADE (SRS) ---
-
 export function handleDifficulty(level) {
-    const verse = appData.verses.find(v => v.id === currentReviewId);
-    if (!verse) return;
+    const verseIndex = appData.verses.findIndex(v => v.id === currentReviewId.value);
+    if (verseIndex === -1) return;
+    const verse = appData.verses[verseIndex];
 
     registerInteraction(verse);
 
@@ -248,17 +217,14 @@ export function handleDifficulty(level) {
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = getLocalDateISO(tomorrow);
-            const recoveryDate = findNextLightDay(tomorrowStr);
+            const recoveryDate = findNextLightDay(tomorrowStr, appData);
 
             if (!verse.dates.includes(recoveryDate)) {
                 verse.dates.push(recoveryDate);
                 verse.dates.sort();
-                
-                const d = new Date(recoveryDate + 'T00:00:00');
-                const fmtDate = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-                showToast(`Revisão extra agendada para ${fmtDate}. Sem estresse!`, 'success');
+                showToast(`Revisão extra agendada. Sem estresse!`, 'success');
             } else {
-                showToast('Reforço já estava agendado. Mantenha o foco!', 'warning');
+                showToast('Reforço já estava agendado.', 'warning');
             }
         }
     } else {
@@ -268,8 +234,21 @@ export function handleDifficulty(level) {
     saveToStorage();
     if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
     
-    // Atualiza todo o sistema
     updateRadar();
     renderDashboard();
     backToList();
+}
+
+export function flipCard() {
+    document.getElementById('flashcardInner').classList.toggle('is-flipped');
+}
+
+export function backToList() {
+    document.getElementById('reviewListContainer').style.display = 'block';
+    document.getElementById('flashcardContainer').style.display = 'none';
+    document.getElementById('flashcardInner').classList.remove('is-flipped');
+}
+
+export function closeReview() {
+    document.getElementById('reviewModal').style.display = 'none';
 }
