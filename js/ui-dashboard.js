@@ -514,4 +514,92 @@ export function updatePacingUI() {
     }
 }
 
-function setPacingState(
+function setPacingState(btn, state) {
+    btn.classList.remove('is-ready', 'is-blocked');
+    btn.classList.add(`is-${state}`);
+}
+
+export function openPlanModal() { document.getElementById('planModal').style.display = 'flex'; updatePacingUI(); }
+export function closePlanModal() { document.getElementById('planModal').style.display = 'none'; }
+export function selectPlan(days) {
+    appData.settings.planInterval = days;
+    saveToStorage();
+    if(window.saveSettingsToFirestore) window.saveSettingsToFirestore(appData.settings);
+    updatePacingUI();
+    closePlanModal();
+    showToast(`Plano atualizado!`, 'success');
+}
+
+export function openRadarModal() { updateRadar(); document.getElementById('radarModal').style.display = 'flex'; }
+export function closeRadarModal() { document.getElementById('radarModal').style.display = 'none'; }
+
+export function toggleHistory() {
+    const section = document.getElementById('historySection');
+    section.classList.toggle('collapsed');
+    const searchBox = document.getElementById('historySearchBox');
+    if(searchBox) searchBox.style.display = section.classList.contains('collapsed') ? 'none' : 'block';
+}
+
+export function filterHistory() {
+    const term = document.getElementById('searchHistory').value.toLowerCase();
+    const rows = document.querySelectorAll('#historyTable tbody tr');
+    let visibleCount = 0;
+    rows.forEach(row => {
+        const refText = row.cells[0].innerText.toLowerCase(); 
+        if (refText.includes(term)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    const noResult = document.getElementById('noResultsMsg');
+    if (noResult) noResult.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+}
+
+export function clearData() {
+    if(confirm('Limpar TUDO? (Isso resetará seus planos e streaks)')) {
+        appData.verses = [];
+        appData.settings = { planInterval: 1 };
+        appData.stats = { streak: 0, lastLogin: null };
+        saveToStorage();
+        updateTable();
+        updateRadar();
+        updatePacingUI();
+        renderDashboard();
+        checkStreak(); 
+    }
+}
+
+export function confirmSmartReschedule() {
+    const data = pendingVerseData.value;
+    if(!data) return;
+    const optimizedDates = data.dates.map(dateStr => findNextLightDay(dateStr, appData));
+    finalizeSave(data.ref, data.text, data.startDate, optimizedDates);
+    closeConflictModal();
+    showToast('Agenda otimizada com sucesso!', 'success');
+}
+
+export function closeConflictModal() {
+    document.getElementById('conflictModal').style.display = 'none';
+    setPendingVerseData(null);
+}
+
+// Changelog UI
+export function openChangelog() {
+    const modal = document.getElementById('changelogModal');
+    const body = document.getElementById('changelogBody');
+    if (!window.neuroChangelog) return;
+    body.innerHTML = window.neuroChangelog.map(log => `
+        <div class="changelog-item">
+            <span class="changelog-date">${log.date}</span>
+            <span class="changelog-title">v${log.version} - ${log.title}</span>
+            <ul class="changelog-ul">${log.changes.map(c => `<li>${c}</li>`).join('')}</ul>
+        </div>
+    `).join('');
+    modal.style.display = 'flex';
+}
+
+export function closeChangelog() {
+    document.getElementById('changelogModal').style.display = 'none';
+}
