@@ -228,6 +228,13 @@ input, textarea {
 input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 textarea { resize: vertical; min-height: 80px; font-family: inherit; }
 
+/* UX: Destaque de Edição (Prioridade 2) */
+.editing-highlight {
+    border-color: var(--warning-text) !important;
+    background-color: #fffdf9 !important;
+    box-shadow: 0 0 5px rgba(243, 156, 18, 0.2);
+}
+
 /* --- PAINEL DE PREVISÃO --- */
 .preview-panel {
     margin-bottom: 20px;
@@ -384,6 +391,22 @@ table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th { text-align: left; background: var(--hover-bg); padding: 10px; border-bottom: 2px solid var(--border); color: var(--text); position: sticky; top: 0; z-index: 10; }
 td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); }
 .delete-btn { color: #e74c3c; cursor: pointer; font-weight: bold; border:none; background:none;}
+
+/* --- NOVA FEATURE: Botão de Edição na Tabela (Prioridade 1) --- */
+.edit-btn {
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: bold;
+    border: none;
+    background: none;
+    margin-right: 8px; /* Espaço do botão deletar */
+    transition: transform 0.2s;
+    padding: 4px; /* Área de toque */
+}
+.edit-btn:hover {
+    transform: scale(1.2);
+    color: #2980b9;
+}
 
 /* --- RADAR GRID (No Modal) --- */
 .radar-panel-embedded {
@@ -851,6 +874,9 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     /* Garante que não estoure no mobile */
     max-width: 100%;
     box-sizing: border-box;
+    /* UPDATED: Scroll para explicações longas (Prioridade 2) */
+    max-height: 180px; 
+    overflow-y: auto;
 }
 
 .mnemonic-text {
@@ -859,6 +885,28 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     font-size: 1rem;
     font-weight: 500;
     margin: 5px 0 0 0;
+}
+
+/* NOVO: Botão para revelar explicação (Dentro do Flashcard) */
+.btn-reveal-expl {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 0.85rem;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    cursor: pointer;
+    margin-top: 10px;
+    opacity: 0.8;
+    padding: 5px;
+    width: 100%;
+    transition: all 0.2s;
+}
+.btn-reveal-expl:hover {
+    opacity: 1;
+    color: var(--accent);
+    background: rgba(0,0,0,0.02);
+    border-radius: 4px;
 }
 
 /* Efeito de Blur para o texto de suporte (Scaffolding) */
