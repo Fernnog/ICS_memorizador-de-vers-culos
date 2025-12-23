@@ -514,6 +514,14 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     border-radius: 12px; border: 2px solid var(--border); background-color: var(--white);
     overflow-y: auto;
 }
+
+/* --- OVERRIDE ESPECÍFICO PARA A FRENTE DO CARTÃO (CORREÇÃO DE LAYOUT) --- */
+.flashcard-front {
+    /* Alinha o conteúdo ao topo para evitar cortes ou 'dança' de texto */
+    justify-content: flex-start;
+    padding-top: 40px;
+}
+
 .flashcard-front h2 { color: var(--accent); }
 .cloze-text { font-size: 1.2rem; font-style: italic; opacity: 0.8; }
 
@@ -861,30 +869,38 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     background: rgba(255, 255, 255, 0.4);
 }
 
-/* --- MNEMONIC STYLES (NEURO UPGRADE) --- */
+/* --- MNEMONIC STYLES (NEURO UPGRADE - CORRIGIDO) --- */
 .mnemonic-box {
     background-color: var(--hover-bg);
     border-left: 3px solid var(--accent);
-    padding: 15px;
+    padding: 20px; /* Aumentado o padding para mais respiro */
     margin: 10px 0 20px 0;
     border-radius: 0 8px 8px 0;
     text-align: center;
     width: 90%;
     animation: fadeIn 0.5s ease;
-    /* Garante que não estoure no mobile */
     max-width: 100%;
     box-sizing: border-box;
-    /* UPDATED: Scroll para explicações longas (Prioridade 2) */
-    max-height: 180px; 
-    overflow-y: auto;
+    
+    /* CORREÇÃO DO SCROLLBAR */
+    max-height: none; /* Remove limitação de altura */
+    overflow-y: visible; /* Permite que o conteúdo cresça */
+    
+    /* Flex para centralizar conteúdo */
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
 }
 
 .mnemonic-text {
     font-style: italic;
     color: var(--primary);
-    font-size: 1rem;
+    font-size: 1.1rem; /* Fonte ligeiramente aumentada */
     font-weight: 500;
-    margin: 5px 0 0 0;
+    margin: 0; /* Remove margens desnecessárias */
+    line-height: 1.5; /* Melhor leitura */
 }
 
 /* NOVO: Botão para revelar explicação (Dentro do Flashcard) */
