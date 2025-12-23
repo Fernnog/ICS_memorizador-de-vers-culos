@@ -1,13 +1,9 @@
-// js/srs-engine.js - Lógica SRS, Datas e Processamento de Texto
+// js/srs-engine.js - Motor de Repetição Espaçada e Arquivos
+import { getLocalDateISO, generateClozeText, escapeICS, showToast } from './utils.js';
 import { appData } from './core.js';
+import { saveToStorage } from './storage.js';
 
-// --- DATA & HORA ---
-export function getLocalDateISO(dateObj) {
-    if(!dateObj) return '';
-    const offset = dateObj.getTimezoneOffset() * 60000;
-    const localTime = new Date(dateObj.getTime() - offset);
-    return localTime.toISOString().split('T')[0];
-}
+// --- CÁLCULOS SRS ---
 
 export function calculateSRSDates(startDateStr) {
     if (!startDateStr) return [];
@@ -23,17 +19,7 @@ export function calculateSRSDates(startDateStr) {
     return dates;
 }
 
-// --- ALGORITMO DE OTIMIZAÇÃO (SMART RESCHEDULE) ---
-export function getCurrentLoadMap() {
-    const map = {};
-    appData.verses.forEach(v => {
-        v.dates.forEach(d => {
-            map[d] = (map[d] || 0) + 1;
-        });
-    });
-    return map;
-}
-
+// Algoritmo Recursivo para achar dia livre (Load Management)
 export function findNextLightDay(dateStr) {
     const limit = 5;
     const loadMap = getCurrentLoadMap();
@@ -49,27 +35,41 @@ export function findNextLightDay(dateStr) {
     return dateStr;
 }
 
-// --- PROCESSAMENTO DE TEXTO (NEURO) ---
-export function generateClozeText(text) {
-    const words = text.split(' ');
-    return words.map(word => {
-        const cleanWord = word.replace(/[.,;!?]/g, '');
-        if (cleanWord.length > 3 && Math.random() > 0.6) {
-            return "______"; 
+function getCurrentLoadMap() {
+    const map = {};
+    if (!appData.verses) return map;
+    
+    appData.verses.forEach(v => {
+        v.dates.forEach(d => {
+            map[d] = (map[d] || 0) + 1;
+        });
+    });
+    return map;
+}
+
+// --- LÓGICA DE INTERAÇÃO ---
+
+export function registerInteraction(verse) {
+    const todayISO = getLocalDateISO(new Date());
+    const wasOverdue = verse.dates.some(d => d < todayISO) && verse.lastInteraction !== todayISO;
+
+    if (verse.lastInteraction !== todayISO) {
+        verse.lastInteraction = todayISO;
+        saveToStorage();
+        
+        // Sync Cloud (Opcional, se existir a função global ou importada)
+        if (window.saveVerseToFirestore) window.saveVerseToFirestore(verse);
+
+        if (wasOverdue) {
+            showToast("🚀 Progresso registrado! Item recuperado.", "success");
         }
-        return word;
-    }).join(' ');
+        return true; // Indica que houve atualização
+    }
+    return false;
 }
 
-export function getAcronym(text) {
-    return text.split(' ').map(w => {
-        const firstChar = w.charAt(0);
-        const punctuation = w.match(/[.,;!?]+$/) ? w.match(/[.,;!?]+$/)[0] : '';
-        return firstChar + punctuation; 
-    }).join('  ');
-}
+// --- GERAÇÃO DE ICS (AGENDA) ---
 
-// --- GERAÇÃO DE ARQUIVO ICS ---
 export function generateICSFile(verseData, dates) {
     const uidBase = verseData.id;
     const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -117,12 +117,4 @@ export function generateICSFile(verseData, dates) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-}
-
-function escapeICS(str) {
-    if (!str) return '';
-    return str.replace(/\\/g, '\\\\')
-              .replace(/;/g, '\\;')
-              .replace(/,/g, '\\,')
-              .replace(/\n/g, '\\n');
 }
