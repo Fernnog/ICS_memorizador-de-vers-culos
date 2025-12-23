@@ -1,6 +1,16 @@
 // changelog.js
 const systemChangelog = [
     {
+        version: "1.1.5",
+        date: "2025-12-22",
+        title: "Edição Completa & Contexto Mnemônico",
+        changes: [
+            "✏️ <b>Modo de Edição (Finalmente!):</b> Errou a digitação ou quer melhorar uma mnemônica antiga? Agora você pode editar qualquer versículo clicando no ícone de lápis (✎) no histórico. O sistema é inteligente: se você mudar apenas o texto, ele mantém seu agendamento; se mudar a data, ele recalcula o ciclo SRS automaticamente.",
+            "🧠 <b>Explicação Lógica (Contexto):</b> Às vezes a cena mnemônica é tão absurda que esquecemos o sentido dela. Adicionamos um campo 'Explicação' no cadastro. No Flashcard, um link '🤔 Não entendi a cena?' revelará esse contexto para salvar sua memória na hora do aperto.",
+            "🛡️ <b>Gestão de Estado:</b> Melhorias na interface de cadastro, que agora se transforma em um painel de edição com feedback visual (Highlight) nos campos que estão sendo alterados, evitando confusão entre criar novo e editar existente."
+        ]
+    },
+    {
         version: "1.1.4",
         date: "2025-12-21",
         title: "Polimento, Identidade & Robustez",
