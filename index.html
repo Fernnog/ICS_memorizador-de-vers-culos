@@ -7,16 +7,57 @@
     
     <link rel="stylesheet" href="style.css">
     
+    <!-- Estilos Adicionais para v1.1.6 (Podem ir para style.css depois) -->
+    <style>
+        /* Cross-fade Animation Classes */
+        .card-content-hidden {
+            opacity: 0;
+            transform: translateY(5px);
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+        }
+        #cardTextContent, #mnemonicContainer, #explanationContainer {
+            transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Container de Botões Dinâmicos */
+        .hint-controls-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 5px;
+            min-height: 50px; /* Evita pulo de layout */
+            justify-content: center;
+        }
+
+        /* Botão Ghost para UX Secundária */
+        .btn-ghost-accent {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-size: 0.85rem;
+            cursor: pointer;
+            opacity: 0.8;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            padding: 5px 10px;
+            transition: all 0.2s;
+        }
+        .btn-ghost-accent:hover {
+            opacity: 1;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 4px;
+        }
+    </style>
+
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="images/favicon.ico">
     <link rel="apple-touch-icon" href="images/logo.png">
     <meta name="theme-color" content="#2c3e50">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NeuroBible">
     <meta name="mobile-web-app-capable" content="yes">
-
-    <script src="changelog.js"></script>
 </head>
 <body>
 
@@ -29,9 +70,10 @@
         <div class="loading-bar">
             <div class="loading-fill"></div>
         </div>
-        <small class="splash-version" id="splashVersion">Carregando...</small>
+        <small class="splash-version" id="splashVersion">v1.1.6</small>
     </div>
 </div>
+
 <div class="container">
     <header>
         <div class="brand-area">
@@ -45,29 +87,28 @@
         </div>
         
         <div class="top-controls">
-            <div class="version-pill" onclick="openChangelog()" title="Ver novidades da versão">
-                <span id="currentVersion">v...</span>
+            <div class="version-pill" onclick="window.openChangelog()" title="Ver novidades">
+                <span id="currentVersion">v1.1.6</span>
             </div>
 
             <div class="separator"></div>
 
             <div class="pacing-wrapper">
                 <div id="activePlanIcon" class="plan-indicator"></div>
-
-                <button id="btnPacing" class="btn-icon pacing-btn" onclick="openPlanModal()" title="Gerenciar Ritmo">
+                <button id="btnPacing" class="btn-icon pacing-btn" onclick="window.openPlanModal()" title="Gerenciar Ritmo">
                     <div class="icon-inner">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </div>
                 </button>
-                <div id="streakBadge" class="streak-badge" title="Dias consecutivos de constância">🔥 0</div>
+                <div id="streakBadge" class="streak-badge" title="Dias consecutivos">🔥 0</div>
             </div>
 
-            <button id="btnRadar" class="btn-icon" onclick="openRadarModal()" title="Abrir Radar de Carga (63 dias)">
+            <button id="btnRadar" class="btn-icon" onclick="window.openRadarModal()" title="Radar de Carga">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 <span class="notification-dot"></span>
             </button>
             
-            <button id="btnAuth" class="btn-icon" onclick="openAuthModal()" title="Entrar / Minha Conta">
+            <button id="btnAuth" class="btn-icon" onclick="window.openAuthModal()" title="Minha Conta">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span id="authStatusDot" class="notification-dot" style="background-color: #ccc; display: block;"></span>
             </button>
@@ -100,11 +141,11 @@
     <div class="form-grid">
         <div class="form-group">
             <label for="ref">Referência Bíblica</label>
-            <input type="text" id="ref" placeholder="Ex: João 3:16" oninput="updateRadar()">
+            <input type="text" id="ref" placeholder="Ex: João 3:16">
         </div>
         <div class="form-group">
             <label for="startDate">Início da Memorização</label>
-            <input type="date" id="startDate" onchange="updateRadar()">
+            <input type="date" id="startDate">
         </div>
         
         <div class="form-group full-width">
@@ -124,25 +165,25 @@
     </div>
 
     <div id="previewPanel" class="preview-panel" style="display:none;">
-        <small>📅 Previsão de Revisões (Impacto na Agenda):</small>
+        <small>📅 Previsão de Revisões:</small>
         <div id="previewChips" class="preview-chips-container"></div>
     </div>
 
-    <button id="btnCreate" class="btn-main" onclick="processAndGenerate()">
+    <button id="btnCreate" class="btn-main" onclick="window.processAndGenerate()">
         <svg style="margin-right:8px;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         Confirmar e Gerar Agenda
     </button>
 
     <div id="editControls" style="display:none; gap:10px; margin-top:10px;">
-        <button class="btn-main" onclick="saveEdit()" style="background:var(--warning-text); justify-content: center;">
+        <button class="btn-main" onclick="window.saveEdit()" style="background:var(--warning-text); justify-content: center;">
             <svg style="margin-right:8px;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Salvar Alterações
         </button>
-        <button class="btn-ghost-danger" onclick="cancelEdit()" style="width:100%; border:1px solid var(--border);">Cancelar Edição</button>
+        <button class="btn-ghost-danger" onclick="window.cancelEdit()" style="width:100%; border:1px solid var(--border);">Cancelar Edição</button>
     </div>
 
     <div class="history-section collapsed" id="historySection">
-        <div class="history-header" onclick="toggleHistory()">
+        <div class="history-header" onclick="window.toggleHistory()">
             <div class="header-left">
                 <h4>
                     <svg style="vertical-align: middle; margin-right:5px; opacity:0.7" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -152,7 +193,7 @@
 
             <div class="header-controls" onclick="event.stopPropagation()">
                 <div class="search-wrapper" id="historySearchBox" style="display:none;">
-                    <input type="text" id="searchHistory" placeholder="Filtrar..." oninput="filterHistory()">
+                    <input type="text" id="searchHistory" placeholder="Filtrar..." oninput="window.filterHistory()">
                 </div>
 
                 <button class="btn-icon btn-toggle" title="Expandir/Recolher">
@@ -162,7 +203,7 @@
         </div>
 
         <div class="history-body">
-            <button class="btn-ghost-danger full-width-mobile" onclick="clearData()">Limpar Tudo</button>
+            <button class="btn-ghost-danger full-width-mobile" onclick="window.clearData()">Limpar Tudo</button>
             <div class="table-scroll-container">
                 <table id="historyTable">
                     <thead>
@@ -182,21 +223,12 @@
     </div>
 </div>
 
-<div id="changelogModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Histórico de Evolução</h3>
-            <button class="close-modal" onclick="closeChangelog()">×</button>
-        </div>
-        <div id="changelogBody" class="changelog-list"></div>
-    </div>
-</div>
-
+<!-- Modais -->
 <div id="radarModal" class="modal-overlay" style="display: none;">
     <div class="modal-content large-content">
         <div class="modal-header">
-            <h3>Radar de Carga Cognitiva (63 Dias)</h3>
-            <button class="close-modal" onclick="closeRadarModal()">×</button>
+            <h3>Radar de Carga Cognitiva</h3>
+            <button class="close-modal" onclick="window.closeRadarModal()">×</button>
         </div>
         <div class="radar-panel-embedded">
             <div class="radar-header">
@@ -216,31 +248,20 @@
     <div class="modal-content review-content">
         <div class="modal-header">
             <h3 id="reviewTitle">Revisão do Dia</h3>
-            <button class="close-modal" onclick="closeReview()">×</button>
+            <button class="close-modal" onclick="window.closeReview()">×</button>
         </div>
         
-        <div id="overloadAlert" class="overload-alert" style="display: none;">
-            <div class="alert-content">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                <span><strong>Sobrecarga Detectada!</strong> Muitos itens hoje.</span>
-            </div>
-            <button class="btn-reschedule" onclick="rescheduleDailyLoad()">
-                Passar para próximo dia leve ➔
-            </button>
-        </div>
-
         <div id="reviewListContainer">
             <p class="instruction-text">Selecione um versículo para treinar:</p>
             <div id="reviewList" class="verse-list"></div>
         </div>
 
         <div id="flashcardContainer" style="display:none;">
-            <div class="flashcard" onclick="flipCard()">
+            <div class="flashcard" onclick="window.flipCard()">
                 <div class="flashcard-inner" id="flashcardInner">
                     
                     <div class="flashcard-front">
                         <small>DESAFIO DE MEMÓRIA</small>
-                        
                         <h2 id="cardRef">...</h2>
                         
                         <div id="mnemonicContainer" class="mnemonic-box" style="display:none;">
@@ -254,10 +275,10 @@
                         
                         <p id="cardTextContent" class="cloze-text">...</p>
                         
+                        <!-- CONTROLES MODIFICADOS PARA v1.1.6 -->
                         <div class="front-controls">
-                            <button id="btnHint" class="btn-hint" onclick="event.stopPropagation(); showHintStage()">
-                                💡 Preciso de uma dica
-                            </button>
+                            <!-- Área Dinâmica para Botões Duplos (Quick Skip) -->
+                            <div id="hintControlsArea" class="hint-controls-wrapper"></div>
                             
                             <div class="tap-hint-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
@@ -268,17 +289,15 @@
 
                     <div class="flashcard-back">
                         <small>RESPOSTA COMPLETA</small>
-                        
                         <h2 id="cardRefBack">...</h2>
-
                         <p id="cardFullText">...</p>
                         
                         <div class="feedback-actions">
-                            <button class="btn-feedback hard" onclick="event.stopPropagation(); handleDifficulty('hard')">
+                            <button class="btn-feedback hard" onclick="event.stopPropagation(); window.handleDifficulty('hard')">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                                 <span>Difícil / Errei</span>
                             </button>
-                            <button class="btn-feedback easy" onclick="event.stopPropagation(); handleDifficulty('easy')">
+                            <button class="btn-feedback easy" onclick="event.stopPropagation(); window.handleDifficulty('easy')">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                                 <span>Fácil / Acertei</span>
                             </button>
@@ -286,110 +305,71 @@
                     </div>
                 </div>
             </div>
-            <button class="btn-small btn-back-list" onclick="backToList()">⬅ Voltar para a Lista</button>
+            <button class="btn-small btn-back-list" onclick="window.backToList()">⬅ Voltar para a Lista</button>
         </div>
     </div>
 </div>
 
+<!-- Outros Modais (Plan, Auth, Conflict, Changelog) Mantidos -->
 <div id="planModal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3>Definir Ritmo de Estudo</h3>
-            <button class="close-modal" onclick="closePlanModal()">×</button>
-        </div>
+        <button class="close-modal" onclick="window.closePlanModal()">×</button>
+        <h3>Ritmo de Estudo</h3>
         <div class="plan-selector">
-            <div class="plan-card" onclick="selectPlan(1)">
-                <div class="plan-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-                <div>
-                    <h4>Diário (Neuro-Elite)</h4>
-                    <p>1 versículo/dia. Alta dedicação.</p>
-                </div>
-            </div>
-            <div class="plan-card" onclick="selectPlan(2)">
-                <div class="plan-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg></div>
-                <div>
-                    <h4>Alternado (Fluxo Constante)</h4>
-                    <p>1 versículo a cada 2 dias. Equilíbrio.</p>
-                </div>
-            </div>
-            <div class="plan-card" onclick="selectPlan(3)">
-                <div class="plan-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg></div>
-                <div>
-                    <h4>Modo Leve (Antigo Zen)</h4>
-                    <p>1 versículo a cada 3 dias. Foco em meditação.</p>
-                </div>
-            </div>
+            <div class="plan-card" onclick="window.selectPlan(1)"><h4>Diário</h4></div>
+            <div class="plan-card" onclick="window.selectPlan(2)"><h4>Alternado</h4></div>
+            <div class="plan-card" onclick="window.selectPlan(3)"><h4>Modo Leve</h4></div>
         </div>
-        <p class="current-plan-display">Ritmo Atual: <strong id="currentPlanLabel">Não definido</strong></p>
+        <p style="text-align:center; margin-top:10px;">Atual: <strong id="currentPlanLabel">...</strong></p>
     </div>
 </div>
 
 <div id="authModal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3>Acesso NeuroBible</h3>
-            <button class="close-modal" onclick="closeAuthModal()">×</button>
+        <button class="close-modal" onclick="window.closeAuthModal()">×</button>
+        <h3>Acesso NeuroBible</h3>
+        <div id="loginState">
+            <input type="email" id="authEmail" placeholder="Email" style="width:100%; margin-bottom:10px;">
+            <input type="password" id="authPassword" placeholder="Senha" style="width:100%; margin-bottom:10px;">
+            <button class="btn-main" onclick="window.handleLogin()">Entrar</button>
         </div>
-        
-        <div class="auth-form-container">
-            
-            <div id="loginState">
-                <p id="authMessage" style="font-size: 0.9rem; color: var(--text); opacity: 0.8; margin-bottom: 20px;">
-                    Entre para sincronizar seus versículos na nuvem.
-                </p>
-                <div class="form-group">
-                    <label for="authEmail">E-mail</label>
-                    <input type="email" id="authEmail" placeholder="seu@email.com">
-                </div>
-                <div class="form-group" style="margin-top: 15px;">
-                    <label for="authPassword">Senha</label>
-                    <input type="password" id="authPassword" placeholder="******">
-                </div>
-                <div style="margin-top: 25px;">
-                    <button class="btn-main" onclick="handleLogin()">Entrar</button>
-                </div>
-            </div>
-
-            <div id="userState" style="display: none; text-align: center; padding: 20px 0;">
-                <div style="width: 80px; height: 80px; background: var(--hover-bg); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
-                    👤
-                </div>
-                <h3 id="userEmailDisplay" style="margin: 0 0 5px 0; color: var(--primary);">...</h3>
-                <p style="font-size: 0.8rem; color: var(--accent); margin-bottom: 20px;">● Sincronização Ativa</p>
-                
-                <button id="btnLogout" class="btn-ghost-danger" style="width: 100%; border: 1px solid var(--border);" onclick="handleLogout()">
-                    Sair da Conta
-                </button>
-            </div>
-
+        <div id="userState" style="display:none; text-align:center;">
+            <h3 id="userEmailDisplay">...</h3>
+            <button class="btn-ghost-danger" onclick="window.handleLogout()">Sair</button>
         </div>
     </div>
 </div>
 
 <div id="conflictModal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3 style="color:#e74c3c">⚠️ Sobrecarga Detectada</h3>
-        </div>
-        <p id="conflictMsg">Algumas datas geradas já estão muito cheias.</p>
-        
+        <h3 style="color:#e74c3c">⚠️ Sobrecarga</h3>
+        <p id="conflictMsg">...</p>
         <div class="conflict-actions">
-            <button class="btn-ghost-danger" onclick="closeConflictModal()">Cancelar</button>
-            <button class="btn-main" onclick="confirmSmartReschedule()">
-                ⚡ Otimizar (Mover para dias livres)
-            </button>
+            <button class="btn-ghost-danger" onclick="window.closeConflictModal()">Cancelar</button>
+            <button class="btn-main" onclick="window.confirmSmartReschedule()">Otimizar</button>
         </div>
+    </div>
+</div>
+
+<div id="changelogModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <button class="close-modal" onclick="window.closeChangelog()">×</button>
+        <h3>Histórico</h3>
+        <div id="changelogBody" class="changelog-list"></div>
     </div>
 </div>
 
 <div id="toastBox" class="toast-box"></div>
 
+<!-- Dependências Externas -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase.js"></script> <!-- Mantido como script normal por enquanto -->
+<script src="changelog.js"></script>
 
-<script src="firebase.js"></script>
-<script src="app.js"></script>
+<!-- NOVO PONTO DE ENTRADA MODULAR -->
+<script type="module" src="js/main.js"></script>
 
 </body>
 </html>
