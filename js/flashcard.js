@@ -12,7 +12,9 @@ import { calculateSRSDates, findNextLightDay } from './srs-engine.js';
 // --- ÍCONES SVG ---
 const ICONS = {
     target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
-    bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`
+    bulb: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M9 21v-4h6v4"/><path d="M12 3a9 9 0 0 0-9 9c0 4.97 9 13 9 13s9-8.03 9-13a9 9 0 0 0-9-9z"/></svg>`,
+    next: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>`,
+    back: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>`
 };
 
 // --- FLASHCARD LOGIC ---
@@ -20,17 +22,6 @@ const ICONS = {
 export function openDailyReview(dateStr) {
     let versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
     
-    // --- CORREÇÃO 1: Lógica do Alerta de Sobrecarga ---
-    const alertBox = document.getElementById('overloadAlert');
-    if (alertBox) {
-        // Exibe alerta se houver muitos itens (ex: > 10)
-        if (versesToReview.length > 10) {
-            alertBox.style.display = 'flex';
-        } else {
-            alertBox.style.display = 'none';
-        }
-    }
-
     if (versesToReview.length === 0) return;
 
     // Embaralha (Interleaving)
@@ -70,35 +61,25 @@ export function startFlashcard(verseId) {
     document.getElementById('cardRefBack').innerText = verse.ref; 
     document.getElementById('cardFullText').innerText = verse.text;
     
-    // Reseta display de explicação (garantia)
-    document.getElementById('explanationContainer').style.display = 'none';
-
+    // Reset de Estado
     const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
-    setCardStage(hasMnemonic ? -1 : 0);
+    setCardStage(hasMnemonic ? -1 : 0); // Se tem mnemônica começa no -1, senão no 0
     setIsExplanationActive(false); 
     
     renderCardContent(verse);
     updateHintButtonUI(); 
 }
 
-export function startFlashcardFromDash(id) {
-    document.getElementById('reviewModal').style.display = 'flex';
-    // Oculta o alerta se vier direto do dash, pois é apenas 1 item
-    const alertBox = document.getElementById('overloadAlert');
-    if(alertBox) alertBox.style.display = 'none';
-    
-    startFlashcard(id);
-}
-
-// Lógica de Renderização
+// Lógica de Renderização com Animação
 function renderCardContent(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
-    const mnemonicText = document.getElementById('cardMnemonicText');
     const refEl = document.getElementById('cardRef');
     const explContainer = document.getElementById('explanationContainer');
     const explText = document.getElementById('cardExplanationText');
+    const mnemonicText = document.getElementById('cardMnemonicText');
 
+    // Reset visual básico
     contentEl.classList.remove('blur-text');
     mnemonicBox.style.display = 'none';
     explContainer.style.display = 'none';
@@ -110,28 +91,28 @@ function renderCardContent(verse) {
         
         if (isExplanationActive.value) {
             // MOSTRA A EXPLICAÇÃO
-            // --- CORREÇÃO 3: Usar 'block' para manter fluxo de texto correto ---
-            explContainer.style.display = 'block'; 
+            explContainer.style.display = 'flex';
             explText.innerText = verse.explanation || "Sem explicação cadastrada.";
             mnemonicBox.style.display = 'none'; 
         } else {
-            // MOSTRA A MNEMÔNICA NORMAL
+            // MOSTRA A MNEMÔNICA
             mnemonicBox.style.display = 'flex';
             explContainer.style.display = 'none';
             mnemonicText.innerText = verse.mnemonic;
         }
 
+        // Texto borrado (Scaffolding)
         contentEl.innerText = getAcronym(verse.text);
         contentEl.className = 'cloze-text first-letter-mode blur-text'; 
     } 
     else if (cardStage.value === 0) {
-        // --- ESTÁGIO 0: ACRÔNIMO ---
+        // --- ESTÁGIO 0: ACRÔNIMO (Iniciais) ---
         refEl.style.display = 'block';
         contentEl.innerText = getAcronym(verse.text);
-        contentEl.className = 'cloze-text first-letter-mode';
+        contentEl.className = 'cloze-text first-letter-mode'; // Remove blur
     } 
     else if (cardStage.value === 1) {
-        // --- ESTÁGIO 1: CLOZE ---
+        // --- ESTÁGIO 1: CLOZE (Lacunas) ---
         refEl.style.display = 'block';
         const clozeHTML = generateClozeText(verse.text).replace(/\n/g, '<br>');
         contentEl.innerHTML = `"${clozeHTML}"`;
@@ -139,52 +120,99 @@ function renderCardContent(verse) {
     }
 }
 
+// Nova Lógica de Botões Dinâmicos (Bifurcação)
 function updateHintButtonUI() {
-    const btn = document.getElementById('btnHint'); 
-    const verse = appData.verses.find(v => v.id === currentReviewId.value);
-    const hasExplanation = verse && verse.explanation && verse.explanation.trim().length > 0;
+    const controlsArea = document.getElementById('hintControlsArea');
+    const tapIcon = document.getElementById('tapHintIcon'); // Controle de visibilidade do flip
     
+    controlsArea.innerHTML = ''; // Limpa botões anteriores
+    
+    const verse = appData.verses.find(v => v.id === currentReviewId.value);
+    if (!verse) return;
+
+    // --- FASE 1: MNEMÔNICA (-1) ---
     if (cardStage.value === -1) {
-        btn.style.display = 'inline-flex';
-        
-        if (!isExplanationActive.value && hasExplanation) {
-            btn.innerHTML = `${ICONS.bulb} <span>Não entendi a cena (Ver Explicação)</span>`;
-        } else {
-            btn.innerHTML = `${ICONS.target} <span>Agora entendi (Ver Texto)</span>`;
+        // Bloqueia visualização da resposta completa nesta fase
+        if(tapIcon) tapIcon.style.display = 'none';
+
+        // Botão A: Contexto (Apenas se houver explicação)
+        if (verse.explanation && verse.explanation.trim().length > 0) {
+            const btnExpl = document.createElement('button');
+            btnExpl.className = 'btn-ghost-accent';
+            
+            // Alterna texto do botão dependendo do estado
+            if (isExplanationActive.value) {
+                btnExpl.innerHTML = `${ICONS.back} Voltar para Cena Mnemônica`;
+            } else {
+                btnExpl.innerHTML = `${ICONS.bulb} Esqueci a cena (Ver Contexto)`;
+            }
+            
+            btnExpl.onclick = (e) => { e.stopPropagation(); toggleExplanation(); };
+            controlsArea.appendChild(btnExpl);
         }
-    } else if (cardStage.value === 0) {
-        btn.style.display = 'inline-flex';
-        btn.innerHTML = `${ICONS.bulb} <span>Preciso de uma dica</span>`;
-    } else {
-        btn.style.display = 'none';
+
+        // Botão B: Avançar para Treino
+        const btnNext = document.createElement('button');
+        btnNext.className = 'btn-hint';
+        // Texto muda se o usuário estiver vendo a explicação
+        btnNext.innerHTML = isExplanationActive.value 
+            ? `${ICONS.next} <span>Entendi! Ir para Iniciais</span>`
+            : `${ICONS.next} <span>Lembrei! Ir para Iniciais</span>`;
+            
+        btnNext.onclick = (e) => { e.stopPropagation(); advanceStage(); };
+        controlsArea.appendChild(btnNext);
+    } 
+    // --- FASE 2: INICIAIS (0) ---
+    else if (cardStage.value === 0) {
+        // Libera ícone de virar (flip)
+        if(tapIcon) tapIcon.style.display = 'flex';
+
+        const btnHint = document.createElement('button');
+        btnHint.className = 'btn-hint';
+        btnHint.innerHTML = `${ICONS.bulb} <span>Preciso de uma Dica (Lacunas)</span>`;
+        btnHint.onclick = (e) => { e.stopPropagation(); advanceStage(); };
+        controlsArea.appendChild(btnHint);
+    } 
+    // --- FASE 3: LACUNAS (1) ---
+    else {
+        // Apenas ícone de virar disponível
+        if(tapIcon) tapIcon.style.display = 'flex';
     }
 }
 
-export function showHintStage() {
-    const verse = appData.verses.find(v => v.id === currentReviewId.value);
-    if(!verse) return;
-
-    if (cardStage.value === -1) {
-        const hasExplanation = verse.explanation && verse.explanation.trim().length > 0;
-        
-        // Se tem explicação e ela ainda não está ativa -> Ativa Explicação
-        if (hasExplanation && !isExplanationActive.value) {
-            setIsExplanationActive(true);
-            renderCardContent(verse);
-            updateHintButtonUI();
-            return; 
-        }
-        
-        // Avança para texto
-        setCardStage(0); 
-        setIsExplanationActive(false);
-    } else if (cardStage.value === 0) {
-        setCardStage(1); 
-    }
+// Alterna apenas a visualização entre Mnemônica e Explicação (Sem avançar estágio)
+export function toggleExplanation() {
+    const newVal = !isExplanationActive.value;
+    setIsExplanationActive(newVal);
     
-    registerInteraction(verse); 
+    const verse = appData.verses.find(v => v.id === currentReviewId.value);
     renderCardContent(verse);
     updateHintButtonUI();
+}
+
+// Avança na hierarquia cognitiva (Mnemônica -> Iniciais -> Lacunas)
+export function advanceStage() {
+    const current = cardStage.value;
+    
+    if (current === -1) {
+        setCardStage(0); // Vai para Iniciais
+        setIsExplanationActive(false); // Reseta visualização de explicação
+    } else if (current === 0) {
+        setCardStage(1); // Vai para Lacunas
+    }
+    
+    const verse = appData.verses.find(v => v.id === currentReviewId.value);
+    
+    // Registra interação técnica (usuário está ativo)
+    registerInteraction(verse);
+    
+    renderCardContent(verse);
+    updateHintButtonUI();
+}
+
+export function startFlashcardFromDash(id) {
+    document.getElementById('reviewModal').style.display = 'flex';
+    startFlashcard(id);
 }
 
 export function registerInteraction(verse) {
@@ -232,11 +260,7 @@ export function handleDifficulty(level) {
             if (!verse.dates.includes(recoveryDate)) {
                 verse.dates.push(recoveryDate);
                 verse.dates.sort();
-                
-                // Formata data para o usuário
-                const d = new Date(recoveryDate + 'T00:00:00');
-                const fmtDate = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-                showToast(`Revisão extra agendada para ${fmtDate}.`, 'success');
+                showToast(`Revisão extra agendada. Sem estresse!`, 'success');
             } else {
                 showToast('Reforço já estava agendado.', 'warning');
             }
@@ -265,56 +289,4 @@ export function backToList() {
 
 export function closeReview() {
     document.getElementById('reviewModal').style.display = 'none';
-}
-
-// --- CORREÇÃO 2: Função de Reagendamento (Botão de Sobrecarga) ---
-export function rescheduleDailyLoad() {
-    // Tenta pegar a data do título do modal
-    const titleEl = document.getElementById('reviewTitle');
-    if (!titleEl) return;
-    
-    // O texto é "Revisão: DD/MM/AAAA"
-    const textParts = titleEl.innerText.split(': ');
-    if (textParts.length < 2) return;
-    
-    const dateText = textParts[1];
-    const parts = dateText.split('/'); // [DD, MM, AAAA]
-    const currentISODate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
-
-    const versesToMove = appData.verses.filter(v => v.dates.includes(currentISODate));
-    
-    if (versesToMove.length === 0) {
-        showToast("Nenhum item para mover.", "warning");
-        return;
-    }
-
-    if (confirm(`Deseja mover ${versesToMove.length} revisões de hoje para o próximo dia leve?`)) {
-        let movedCount = 0;
-        
-        versesToMove.forEach(v => {
-            // Remove a data do dia atual
-            v.dates = v.dates.filter(d => d !== currentISODate);
-            
-            // Procura vaga a partir de AMANHÃ
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const nextDayISO = getLocalDateISO(tomorrow);
-            
-            // Usa o srs-engine para achar dia livre
-            const newDate = findNextLightDay(nextDayISO, appData);
-            
-            v.dates.push(newDate);
-            v.dates.sort();
-            movedCount++;
-            
-            // Sync nuvem individual
-            if (window.saveVerseToFirestore) window.saveVerseToFirestore(v);
-        });
-
-        saveToStorage();
-        updateRadar();
-        
-        showToast(`${movedCount} itens reagendados com sucesso!`, 'success');
-        closeReview();
-    }
 }
