@@ -1,6 +1,16 @@
 // js/changelog.js
 const systemChangelog = [
     {
+        version: "1.1.7",
+        date: "2025-12-24",
+        title: "Fluxo de Decisão",
+        changes: [
+            "🔀 <b>Decisão Bifurcada:</b> Agora você escolhe explicitamente entre ver a Explicação (Contexto) ou Avançar (Iniciais) na tela da Mnemônica.",
+            "🛡️ <b>Proteção de Treino:</b> O botão de 'Ver Resposta Completa' fica oculto nas etapas iniciais para garantir o esforço cognitivo correto.",
+            "✨ <b>UX:</b> Botões de ação mais claros e contextuais."
+        ]
+    },
+    {
         version: "1.1.6",
         date: "2025-12-23",
         title: "Fluidez & Arquitetura",
@@ -18,9 +28,7 @@ const systemChangelog = [
     }
 ];
 
-// ⚠️ ATENÇÃO: A palavra 'export' é OBRIGATÓRIA aqui embaixo:
 export function initChangelog() {
-    // Mantém compatibilidade global (opcional, mas bom para debug)
     window.neuroChangelog = systemChangelog;
 
     const versionEl = document.getElementById('currentVersion');
