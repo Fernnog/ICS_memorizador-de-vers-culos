@@ -511,14 +511,14 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     padding: 30px; box-sizing: border-box;
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     border-radius: 12px; border: 2px solid var(--border); background-color: var(--white);
-    overflow-y: auto;
+    overflow-y: auto; /* Necessário para conteúdo longo */
 }
 
 /* --- OVERRIDE ESPECÍFICO PARA A FRENTE DO CARTÃO (CORREÇÃO DE LAYOUT) --- */
 .flashcard-front {
     /* Alinha o conteúdo ao topo para evitar cortes ou 'dança' de texto */
-    justify-content: flex-start;
-    padding-top: 40px;
+    justify-content: flex-start; /* Mudado de center para flex-start */
+    padding-top: 40px; /* Espaço no topo para os dots e título */
 }
 
 .flashcard-front h2 { color: var(--accent); }
@@ -538,23 +538,24 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 
 /* Container de Controles da Frente */
 .front-controls {
-    margin-top: auto;
+    margin-top: auto; /* Empurra para baixo */
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 15px;
     width: 100%;
+    padding-top: 15px; /* Adiciona espaço antes dos botões */
 }
 
 /* --- v1.1.6: ANIMAÇÕES & FLUIDEZ --- */
 /* Suavização visual para troca de conteúdo no card */
-.card-content-transition {
+.card-content-transition { /* Classe antiga, mantida por compatibilidade */
     transition: opacity 0.2s ease-in-out, transform 0.2s ease;
     opacity: 1;
     transform: translateY(0);
 }
 
-.card-content-hidden {
+.card-content-hidden { /* Classe antiga, mantida por compatibilidade */
     opacity: 0;
     transform: translateY(5px); /* Leve movimento para baixo ao sair */
 }
@@ -695,7 +696,9 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     animation: spinSlow 10s linear infinite; /* Rotação super suave */
 }
 
-@keyframes spinSlow { 100% { transform: rotate(360deg); } }
+@keyframes spinSlow {
+    100% { transform: rotate(360deg); }
+}
 
 /* Botão Voltar Profissional */
 .btn-back-list {
