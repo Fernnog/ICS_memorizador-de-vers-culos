@@ -20,6 +20,17 @@ const ICONS = {
 export function openDailyReview(dateStr) {
     let versesToReview = appData.verses.filter(v => v.dates.includes(dateStr));
     
+    // --- CORREÇÃO 1: Lógica do Alerta de Sobrecarga ---
+    const alertBox = document.getElementById('overloadAlert');
+    if (alertBox) {
+        // Exibe alerta se houver muitos itens (ex: > 10)
+        if (versesToReview.length > 10) {
+            alertBox.style.display = 'flex';
+        } else {
+            alertBox.style.display = 'none';
+        }
+    }
+
     if (versesToReview.length === 0) return;
 
     // Embaralha (Interleaving)
@@ -59,6 +70,7 @@ export function startFlashcard(verseId) {
     document.getElementById('cardRefBack').innerText = verse.ref; 
     document.getElementById('cardFullText').innerText = verse.text;
     
+    // Reseta display de explicação (garantia)
     document.getElementById('explanationContainer').style.display = 'none';
 
     const hasMnemonic = verse.mnemonic && verse.mnemonic.trim().length > 0;
@@ -71,21 +83,22 @@ export function startFlashcard(verseId) {
 
 export function startFlashcardFromDash(id) {
     document.getElementById('reviewModal').style.display = 'flex';
+    // Oculta o alerta se vier direto do dash, pois é apenas 1 item
+    const alertBox = document.getElementById('overloadAlert');
+    if(alertBox) alertBox.style.display = 'none';
+    
     startFlashcard(id);
 }
 
-// Lógica de Renderização com Animação (V1.1.6)
+// Lógica de Renderização
 function renderCardContent(verse) {
     const contentEl = document.getElementById('cardTextContent');
     const mnemonicBox = document.getElementById('mnemonicContainer');
+    const mnemonicText = document.getElementById('cardMnemonicText');
     const refEl = document.getElementById('cardRef');
     const explContainer = document.getElementById('explanationContainer');
     const explText = document.getElementById('cardExplanationText');
-    const mnemonicText = document.getElementById('cardMnemonicText');
 
-    // Aplica classe de fade-out para suavizar (se houver CSS correspondente)
-    // Para simplificar aqui, fazemos a troca direta, mas preparei o terreno.
-    
     contentEl.classList.remove('blur-text');
     mnemonicBox.style.display = 'none';
     explContainer.style.display = 'none';
@@ -96,8 +109,9 @@ function renderCardContent(verse) {
         refEl.style.display = 'none';
         
         if (isExplanationActive.value) {
-            // MOSTRA A EXPLICAÇÃO (Substituindo a Mnemônica)
-            explContainer.style.display = 'flex'; // Flex para centralizar
+            // MOSTRA A EXPLICAÇÃO
+            // --- CORREÇÃO 3: Usar 'block' para manter fluxo de texto correto ---
+            explContainer.style.display = 'block'; 
             explText.innerText = verse.explanation || "Sem explicação cadastrada.";
             mnemonicBox.style.display = 'none'; 
         } else {
@@ -125,9 +139,7 @@ function renderCardContent(verse) {
     }
 }
 
-// Lógica de Bifurcação (V1.1.6)
 function updateHintButtonUI() {
-    // Usaremos a área dinâmica se você atualizou o HTML, senão, fallback para o botão antigo
     const btn = document.getElementById('btnHint'); 
     const verse = appData.verses.find(v => v.id === currentReviewId.value);
     const hasExplanation = verse && verse.explanation && verse.explanation.trim().length > 0;
@@ -136,8 +148,6 @@ function updateHintButtonUI() {
         btn.style.display = 'inline-flex';
         
         if (!isExplanationActive.value && hasExplanation) {
-            // V1.1.6: Aqui poderíamos injetar dois botões se o HTML permitisse.
-            // Mantendo compatível com botão único:
             btn.innerHTML = `${ICONS.bulb} <span>Não entendi a cena (Ver Explicação)</span>`;
         } else {
             btn.innerHTML = `${ICONS.target} <span>Agora entendi (Ver Texto)</span>`;
@@ -222,7 +232,11 @@ export function handleDifficulty(level) {
             if (!verse.dates.includes(recoveryDate)) {
                 verse.dates.push(recoveryDate);
                 verse.dates.sort();
-                showToast(`Revisão extra agendada. Sem estresse!`, 'success');
+                
+                // Formata data para o usuário
+                const d = new Date(recoveryDate + 'T00:00:00');
+                const fmtDate = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+                showToast(`Revisão extra agendada para ${fmtDate}.`, 'success');
             } else {
                 showToast('Reforço já estava agendado.', 'warning');
             }
@@ -251,4 +265,56 @@ export function backToList() {
 
 export function closeReview() {
     document.getElementById('reviewModal').style.display = 'none';
+}
+
+// --- CORREÇÃO 2: Função de Reagendamento (Botão de Sobrecarga) ---
+export function rescheduleDailyLoad() {
+    // Tenta pegar a data do título do modal
+    const titleEl = document.getElementById('reviewTitle');
+    if (!titleEl) return;
+    
+    // O texto é "Revisão: DD/MM/AAAA"
+    const textParts = titleEl.innerText.split(': ');
+    if (textParts.length < 2) return;
+    
+    const dateText = textParts[1];
+    const parts = dateText.split('/'); // [DD, MM, AAAA]
+    const currentISODate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+
+    const versesToMove = appData.verses.filter(v => v.dates.includes(currentISODate));
+    
+    if (versesToMove.length === 0) {
+        showToast("Nenhum item para mover.", "warning");
+        return;
+    }
+
+    if (confirm(`Deseja mover ${versesToMove.length} revisões de hoje para o próximo dia leve?`)) {
+        let movedCount = 0;
+        
+        versesToMove.forEach(v => {
+            // Remove a data do dia atual
+            v.dates = v.dates.filter(d => d !== currentISODate);
+            
+            // Procura vaga a partir de AMANHÃ
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const nextDayISO = getLocalDateISO(tomorrow);
+            
+            // Usa o srs-engine para achar dia livre
+            const newDate = findNextLightDay(nextDayISO, appData);
+            
+            v.dates.push(newDate);
+            v.dates.sort();
+            movedCount++;
+            
+            // Sync nuvem individual
+            if (window.saveVerseToFirestore) window.saveVerseToFirestore(v);
+        });
+
+        saveToStorage();
+        updateRadar();
+        
+        showToast(`${movedCount} itens reagendados com sucesso!`, 'success');
+        closeReview();
+    }
 }
