@@ -15,19 +15,10 @@
             transform: translateY(5px);
             transition: opacity 0.2s ease-out, transform 0.2s ease-out;
         }
-        /* Classe base para transição suave v1.1.8 */
-        .content-fading-out {
-            opacity: 0 !important;
-            transform: translateY(5px); /* Leve movimento para baixo */
-            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
-        }
-        
-        /* Estado visível padrão v1.1.8 */
         #cardTextContent, #mnemonicContainer, #explanationContainer {
+            transition: opacity 0.2s ease-in, transform 0.2s ease-in;
             opacity: 1;
             transform: translateY(0);
-            transition: opacity 0.2s ease-in, transform 0.2s ease-in;
-            will-change: opacity, transform; /* Performance hint */
         }
 
         /* Container de Botões Dinâmicos */
@@ -270,13 +261,6 @@
                 <div class="flashcard-inner" id="flashcardInner">
                     
                     <div class="flashcard-front">
-                        <!-- v1.1.8: Indicador de Progresso -->
-                        <div id="cardProgress" class="card-progress-container">
-                            <div class="progress-dot" data-step="-1" title="Cena Mental"></div> <!-- Mnemônica -->
-                            <div class="progress-dot" data-step="0" title="Iniciais (Ancoragem)"></div>  <!-- Iniciais -->
-                            <div class="progress-dot" data-step="1" title="Lacunas (Treino)"></div>  <!-- Lacunas -->
-                        </div>
-                        
                         <small>DESAFIO DE MEMÓRIA</small>
                         <h2 id="cardRef">...</h2>
                         
