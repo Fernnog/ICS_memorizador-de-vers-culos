@@ -1,5 +1,17 @@
 // js/changelog.js
+
 const systemChangelog = [
+    {
+        version: "1.1.9",
+        date: "2025-12-25",
+        title: "UX Premium & Sync Robusto",
+        changes: [
+            "🎨 <b>Visual Refinado:</b> Redesign total das janelas de 'Minha Conta' e 'Ritmo', abandonando o visual padrão por Cards estilizados.",
+            "🆔 <b>Identidade de Usuário:</b> Novo painel com avatar visual e destaque para o status de login.",
+            "👆 <b>Seleção Tátil:</b> As opções de ritmo agora são botões grandes e interativos que mostram claramente qual plano está ativo.",
+            "☁️ <b>Fila Offline:</b> Mecanismo de 'Sync Queue' implementado. Se a internet cair, seus dados são salvos localmente e sobem automaticamente ao reconectar."
+        ]
+    },
     {
         version: "1.1.8",
         date: "2025-12-25",
