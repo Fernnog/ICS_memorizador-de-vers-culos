@@ -181,11 +181,18 @@ function updateHintButtonUI() {
 }
 
 // Alterna apenas a visualização entre Mnemônica e Explicação (Sem avançar estágio)
+// CORREÇÃO v1.1.8: Agora salva interação ao visualizar contexto
 export function toggleExplanation() {
     const newVal = !isExplanationActive.value;
     setIsExplanationActive(newVal);
     
     const verse = appData.verses.find(v => v.id === currentReviewId.value);
+    
+    // REGISTRA A INTERAÇÃO (FIX v1.1.8)
+    if (verse) {
+        registerInteraction(verse);
+    }
+    
     renderCardContent(verse);
     updateHintButtonUI();
 }
