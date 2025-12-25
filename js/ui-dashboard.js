@@ -487,7 +487,17 @@ export function updatePacingUI() {
     const indicatorEl = document.getElementById('activePlanIcon');
     if(indicatorEl) indicatorEl.innerHTML = currentConfig.icon;
 
-    // Lógica de Bloqueio
+    // --- NOVA LÓGICA DE SELEÇÃO VISUAL DO MODAL (CARD ATIVO) ---
+    // Remove seleção de todos
+    document.querySelectorAll('.plan-card-option').forEach(el => el.classList.remove('is-selected'));
+    // Adiciona seleção ao atual
+    const activeCard = document.getElementById(`planOption${interval}`);
+    if (activeCard) {
+        activeCard.classList.add('is-selected');
+    }
+    // ------------------------------------------------------------
+
+    // Lógica de Bloqueio do Botão Principal (Pacing)
     let lastDate = null;
     if (appData.verses.length > 0) {
         const sorted = [...appData.verses].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
@@ -519,7 +529,10 @@ function setPacingState(btn, state) {
     btn.classList.add(`is-${state}`);
 }
 
-export function openPlanModal() { document.getElementById('planModal').style.display = 'flex'; updatePacingUI(); }
+export function openPlanModal() { 
+    document.getElementById('planModal').style.display = 'flex'; 
+    updatePacingUI(); // Garante que a classe visual seja atualizada ao abrir
+}
 export function closePlanModal() { document.getElementById('planModal').style.display = 'none'; }
 export function selectPlan(days) {
     appData.settings.planInterval = days;
