@@ -1,7 +1,6 @@
-// firebase.js - Conexão Nuvem e Autenticação (Atualizado)
+// firebase.js - Conexão Nuvem e Autenticação (Atualizado v1.1.9 - Offline Sync)
 
 // 1. CONFIGURAÇÃO DO FIREBASE
-// ⚠️ IMPORTANTE: Substitua os valores abaixo pelos do seu projeto no Firebase Console
 const firebaseConfig = {
 apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
   authDomain: "neurobible-5b44f.firebaseapp.com",
@@ -27,30 +26,81 @@ try {
     console.error("Erro ao inicializar Firebase. Verifique suas chaves de API.", error);
 }
 
+// --- NOVO: GERENCIADOR DE FILA OFFLINE (SYNC QUEUE) ---
+
+// Adiciona item à fila local quando falha a rede
+function addToSyncQueue(action, collection, docId, data) {
+    const queue = JSON.parse(localStorage.getItem('neuroBibleSyncQueue') || '[]');
+    // Adiciona nova pendência com timestamp
+    queue.push({ action, collection, docId, data, timestamp: Date.now() });
+    localStorage.setItem('neuroBibleSyncQueue', JSON.stringify(queue));
+    
+    if (window.showToast) window.showToast("Sem rede. Salvo localmente para sync posterior.", "warning");
+}
+
+// Processa a fila (chamado quando volta online ou ao iniciar)
+window.processSyncQueue = function() {
+    const queue = JSON.parse(localStorage.getItem('neuroBibleSyncQueue') || '[]');
+    if (queue.length === 0) return;
+
+    console.log(`[Sync] Processando ${queue.length} itens pendentes...`);
+    
+    // Limpa a fila do storage para evitar loops, processa a cópia em memória
+    localStorage.setItem('neuroBibleSyncQueue', '[]');
+
+    queue.forEach(item => {
+        if (item.action === 'set') {
+            if (item.collection === 'verses') {
+                window.saveVerseToFirestore(item.data, true); // true = isRetry (sem toast)
+            } else if (item.collection === 'settings') {
+                window.saveSettingsToFirestore(item.data, true);
+            }
+        } else if (item.action === 'delete') {
+            window.handleCloudDeletion(item.docId, true);
+        }
+    });
+};
+
+// Listeners de Rede (Feedback Visual & Gatilhos)
+window.addEventListener('online', () => {
+    if (window.showToast) window.showToast("Conexão restaurada. Sincronizando...", "success");
+    
+    // Atualiza indicador visual para Verde se estiver logado
+    const dot = document.getElementById('authStatusDot');
+    if(dot && currentUser) dot.style.backgroundColor = "#2ecc71"; 
+
+    window.processSyncQueue();
+});
+
+window.addEventListener('offline', () => {
+    if (window.showToast) window.showToast("Você está offline. Alterações salvas localmente.", "warning");
+    
+    // Atualiza indicador visual para Vermelho
+    const dot = document.getElementById('authStatusDot');
+    if(dot) dot.style.backgroundColor = "#e74c3c"; 
+});
+
+
 // --- 2. GESTÃO DE AUTENTICAÇÃO (Auth) ---
 
-// Monitora o estado do usuário (Logado/Deslogado)
 if (auth) {
     auth.onAuthStateChanged((user) => {
-        // Elementos de UI para alternância (Prioridade 1)
         const loginState = document.getElementById('loginState');
         const userState = document.getElementById('userState');
         const userEmailDisplay = document.getElementById('userEmailDisplay');
         const dot = document.getElementById('authStatusDot');
-        const btnLogout = document.getElementById('btnLogout'); // Mantido para compatibilidade, embora esteja dentro do userState agora
 
         if (user) {
             // --- USUÁRIO LOGADO ---
             currentUser = user;
             console.log("Usuário conectado:", user.email);
             
-            // Atualiza UI: Esconde form, mostra perfil
             if(loginState) loginState.style.display = 'none';
             if(userState) userState.style.display = 'block';
             if(userEmailDisplay) userEmailDisplay.innerText = user.email;
             
-            // Indicador visual no header
-            if (dot) dot.style.backgroundColor = "#2ecc71"; // Verde
+            // Indicador visual no header (Verde se online)
+            if (dot) dot.style.backgroundColor = navigator.onLine ? "#2ecc71" : "#e74c3c";
 
             // Tenta carregar dados assim que logar
             if (window.loadVersesFromFirestore) {
@@ -58,12 +108,15 @@ if (auth) {
                    if(data) console.log('Sincronização pós-login concluída.');
                 });
             }
+            
+            // Tenta processar fila pendente ao logar
+            if (window.processSyncQueue) window.processSyncQueue();
+
         } else {
             // --- USUÁRIO DESLOGADO ---
             currentUser = null;
             console.log("Usuário desconectado.");
             
-            // Atualiza UI: Mostra form, esconde perfil
             if(loginState) loginState.style.display = 'block';
             if(userState) userState.style.display = 'none';
             
@@ -72,31 +125,12 @@ if (auth) {
     });
 }
 
-// Funções de UI para Login/Cadastro (Chamadas pelo HTML)
 window.openAuthModal = function() {
     document.getElementById('authModal').style.display = 'flex';
 };
 
 window.closeAuthModal = function() {
     document.getElementById('authModal').style.display = 'none';
-};
-
-// Cadastro (Função mantida caso decida reativar no futuro, mas botão foi removido do HTML)
-window.handleSignUp = function() {
-    const email = document.getElementById('authEmail').value;
-    const pass = document.getElementById('authPassword').value;
-
-    if (!email || !pass) return showToast("Preencha e-mail e senha.", "error");
-
-    auth.createUserWithEmailAndPassword(email, pass)
-        .then((userCredential) => {
-            window.showToast("Conta criada com sucesso!", "success");
-            // Não precisa fechar modal forçadamente, o onAuthStateChanged já atualizará a UI
-        })
-        .catch((error) => {
-            console.error(error);
-            window.showToast("Erro ao criar conta: " + error.message, "error");
-        });
 };
 
 window.handleLogin = function() {
@@ -108,17 +142,13 @@ window.handleLogin = function() {
     auth.signInWithEmailAndPassword(email, pass)
         .then((userCredential) => {
             window.showToast("Login realizado!", "success");
-            // Modal pode continuar aberto mostrando o perfil ou fechar, depende da preferência.
-            // Aqui optamos por fechar para limpar a tela:
             window.closeAuthModal();
         })
         .catch((error) => {
             console.error(error);
-            // Tradução simples de erros comuns
             let msg = error.message;
             if (error.code === 'auth/wrong-password') msg = "Senha incorreta.";
             if (error.code === 'auth/user-not-found') msg = "E-mail não cadastrado.";
-            
             window.showToast("Erro: " + msg, "error");
         });
 };
@@ -126,58 +156,63 @@ window.handleLogin = function() {
 window.handleLogout = function() {
     auth.signOut().then(() => {
         window.showToast("Você saiu da conta.", "warning");
-        // A UI se atualizará automaticamente via onAuthStateChanged
     });
 };
 
-// --- 3. INTEGRAÇÃO COM FIRESTORE (Database) ---
 
-// Salvar Versículo
-window.saveVerseToFirestore = function(verse) {
-    if (!currentUser || !db) return; // Só salva se estiver logado
+// --- 3. INTEGRAÇÃO COM FIRESTORE (Database) - ATUALIZADO ---
 
-    // Coleção: users > UID > verses > ID_do_Versiculo
+// Salvar Versículo (Com Retry/Queue)
+window.saveVerseToFirestore = function(verse, isRetry = false) {
+    if (!currentUser || !db) return; 
+
     db.collection('users').doc(currentUser.uid).collection('verses').doc(String(verse.id))
         .set(verse)
-        .then(() => console.log("Versículo salvo na nuvem:", verse.ref))
-        .catch((err) => console.error("Erro ao salvar na nuvem:", err));
+        .then(() => {
+            console.log("Versículo salvo na nuvem:", verse.ref);
+            // Feedback Visual: Apenas se não for retry automático
+            if (!isRetry && window.showToast) window.showToast("☁️ Salvo na nuvem", "success");
+        })
+        .catch((err) => {
+            console.warn("Falha no save, adicionando à fila:", err);
+            // Se falhar e não for retry, joga pra fila
+            if (!isRetry) addToSyncQueue('set', 'verses', verse.id, verse);
+        });
 };
 
-// Salvar Configurações (Ritmo/Plano)
-window.saveSettingsToFirestore = function(settings) {
+// Salvar Configurações (Com Retry/Queue)
+window.saveSettingsToFirestore = function(settings, isRetry = false) {
     if (!currentUser || !db) return;
 
     db.collection('users').doc(currentUser.uid)
         .set({ settings: settings }, { merge: true })
         .then(() => console.log("Configurações sincronizadas."))
-        .catch((err) => console.error("Erro ao salvar settings:", err));
+        .catch((err) => {
+            console.warn("Falha no settings, adicionando à fila:", err);
+            if (!isRetry) addToSyncQueue('set', 'settings', null, settings);
+        });
 };
 
-// Carregar Dados (Sync Inicial)
+// Carregar Dados (Mantido Igual)
 window.loadVersesFromFirestore = function(callback) {
     if (!currentUser || !db) return;
 
-    // 1. Carrega Settings
     db.collection('users').doc(currentUser.uid).get()
         .then((doc) => {
             if (doc.exists && doc.data().settings) {
-                // Atualiza settings globais se existirem
                 if(window.appData) {
                     window.appData.settings = doc.data().settings;
-                    // Atualiza UI baseada no setting carregado
                     if(window.updatePacingUI) window.updatePacingUI();
                 }
             }
         });
 
-    // 2. Carrega Versículos
     db.collection('users').doc(currentUser.uid).collection('verses').get()
         .then((querySnapshot) => {
             const cloudVerses = [];
             querySnapshot.forEach((doc) => {
                 cloudVerses.push(doc.data());
             });
-            
             if (cloudVerses.length > 0) {
                 callback(cloudVerses);
             }
@@ -185,12 +220,18 @@ window.loadVersesFromFirestore = function(callback) {
         .catch((error) => console.error("Erro ao baixar dados:", error));
 };
 
-// Deletar da Nuvem
-window.handleCloudDeletion = function(id) {
+// Deletar da Nuvem (Com Retry/Queue)
+window.handleCloudDeletion = function(id, isRetry = false) {
     if (!currentUser || !db) return;
 
     db.collection('users').doc(currentUser.uid).collection('verses').doc(String(id))
         .delete()
-        .then(() => console.log("Item deletado da nuvem."))
-        .catch((error) => console.error("Erro ao deletar na nuvem:", error));
+        .then(() => {
+            console.log("Item deletado da nuvem.");
+            if (!isRetry && window.showToast) window.showToast("🗑️ Removido da nuvem", "success");
+        })
+        .catch((error) => {
+            console.error("Erro ao deletar na nuvem:", error);
+            if (!isRetry) addToSyncQueue('delete', 'verses', id, null);
+        });
 };
