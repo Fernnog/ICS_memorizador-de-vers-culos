@@ -1011,3 +1011,96 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Cabeçalho Limpo dos Modais */
+.modal-header-styled {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 25px; padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+}
+.modal-header-styled h3 { margin: 0; color: var(--primary); font-size: 1.2rem; }
+.close-modal-styled {
+    background: transparent; border: none; font-size: 1.8rem;
+    color: #999; cursor: pointer; transition: 0.2s; line-height: 1;
+}
+.close-modal-styled:hover { color: var(--accent); }
+.modal-subtitle { text-align: center; color: var(--text); opacity: 0.7; margin-bottom: 20px; font-size: 0.9rem; }
+
+/* --- CARDS DE PLANO (RITMO) --- */
+.plan-selector-container { display: flex; flex-direction: column; gap: 12px; }
+
+.plan-card-option {
+    display: flex; align-items: center; gap: 15px;
+    background: var(--bg); border: 2px solid transparent;
+    padding: 15px; border-radius: 12px;
+    text-align: left; cursor: pointer;
+    transition: all 0.2s ease; position: relative;
+    width: 100%; /* Garante largura total */
+}
+
+.plan-card-option:hover { background: var(--white); border-color: #dcdcdc; transform: translateY(-2px); }
+
+/* Estado Ativo (Selecionado) */
+.plan-card-option.is-selected {
+    background: var(--white);
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+}
+.plan-card-option.is-selected::after {
+    content: '✔'; position: absolute; right: 15px; top: 50%;
+    transform: translateY(-50%); color: var(--accent); font-weight: bold;
+}
+
+.plan-icon-wrapper {
+    font-size: 1.5rem; background: var(--white);
+    width: 45px; height: 45px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.plan-info h4 { margin: 0 0 4px 0; color: var(--primary); font-size: 1rem; }
+.plan-info small { display: block; color: var(--text); opacity: 0.7; font-size: 0.8rem; line-height: 1.2; }
+
+/* --- PERFIL DO USUÁRIO --- */
+.profile-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #34495e 100%);
+    border-radius: 12px; padding: 25px;
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--white); margin-bottom: 20px;
+    box-shadow: 0 8px 20px rgba(44, 62, 80, 0.3);
+}
+
+.profile-avatar {
+    width: 70px; height: 70px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 15px; border: 2px solid rgba(255,255,255,0.3);
+}
+.profile-avatar svg { width: 32px; height: 32px; color: var(--white); }
+
+.profile-details { text-align: center; }
+.profile-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+.profile-email { margin: 5px 0 10px 0; font-size: 1.1rem; word-break: break-all; }
+.profile-badge {
+    background: var(--accent); padding: 4px 12px;
+    border-radius: 20px; font-size: 0.75rem; font-weight: bold;
+    display: inline-block;
+}
+
+/* Botão de Logout Estilizado */
+.btn-logout-styled {
+    width: 100%; padding: 12px;
+    background: var(--white); border: 1px solid var(--danger-text);
+    color: var(--danger-text); border-radius: 8px;
+    font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.2s;
+}
+.btn-logout-styled:hover {
+    background: var(--danger-bg);
+}
+
+/* Input Styles para Auth */
+.auth-form-wrapper { display: flex; flex-direction: column; gap: 15px; }
+.auth-form-wrapper input { border: 2px solid var(--border); padding: 12px 15px; border-radius: 8px; }
+.auth-form-wrapper input:focus { border-color: var(--accent); }
+.btn-full { width: 100%; border-radius: 8px; justify-content: center; }
