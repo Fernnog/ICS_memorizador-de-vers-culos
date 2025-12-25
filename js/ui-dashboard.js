@@ -8,6 +8,12 @@ import { calculateSRSDates, generateICSFile, findNextLightDay } from './srs-engi
 import { getLocalDateISO, showToast } from './utils.js';
 import { startFlashcardFromDash } from './flashcard.js';
 
+// --- LOGICA DO NOVO ACCORDION (INPUT SECTION) ---
+export function toggleInputSection() {
+    const section = document.getElementById('inputSection');
+    if(section) section.classList.toggle('collapsed');
+}
+
 // --- RADAR & CALENDÁRIO ---
 export function updateRadar() {
     const grid = document.getElementById('calendarGrid');
@@ -115,7 +121,8 @@ export function renderDashboard() {
         overduePanel.style.display = 'block';
         if(overdueCount) overdueCount.innerText = overdueVerses.length;
         
-        const overdueIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px; vertical-align:text-bottom;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+        // Ícone SVG de alerta em vermelho
+        const overdueIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px; vertical-align:text-bottom; color:#c0392b;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
 
         if(overdueList) {
             overdueList.innerHTML = overdueVerses.map(v => `
@@ -139,9 +146,9 @@ export function renderDashboard() {
     
     if(todayVerses.length === 0) {
         if(overdueVerses.length === 0) {
-            list.innerHTML = `<div class="dash-empty-state">✨ Tudo em dia! Nenhuma revisão pendente.</div>`;
+            list.innerHTML = `<div class="dash-empty-state">Tudo em dia! Nenhuma revisão pendente.</div>`;
         } else {
-             list.innerHTML = `<div class="dash-empty-state">Foque nos atrasados acima! ☝️</div>`;
+             list.innerHTML = `<div class="dash-empty-state">Foque nos atrasados acima!</div>`;
         }
     } else {
         list.innerHTML = todayVerses.map(v => `
@@ -234,6 +241,10 @@ export function startEdit(id) {
 
     setEditingVerseId(id);
 
+    // FORÇA ABERTURA DO PAINEL DE INPUT
+    const inputSection = document.getElementById('inputSection');
+    if(inputSection) inputSection.classList.remove('collapsed');
+
     // Popula formulário
     const formFields = ['ref', 'startDate', 'mnemonic', 'explanation', 'text'];
     formFields.forEach(fieldId => {
@@ -250,7 +261,7 @@ export function startEdit(id) {
     if(btnControls) btnControls.style.display = 'flex';
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    showToast('Modo de Edição Ativo ✏️', 'warning');
+    showToast('Modo de Edição Ativo', 'warning');
     updatePreviewPanel();
 }
 
@@ -368,7 +379,10 @@ function showUndoToast(id) {
     if(!box) return;
     const el = document.createElement('div');
     el.className = `toast warning`;
-    el.innerHTML = `🗑️ Item excluído. <button onclick="handleUndo()" class="toast-undo-btn">Desfazer</button>`;
+    // Ícone de Lixeira em SVG
+    const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+    
+    el.innerHTML = `${trashIcon} Item excluído. <button onclick="handleUndo()" class="toast-undo-btn">Desfazer</button>`;
     box.innerHTML = '';
     box.appendChild(el);
     setTimeout(() => { if(el.parentNode) el.remove(); }, 5000);
@@ -466,7 +480,11 @@ export function checkStreak() {
         saveToStorage();
     }
     const badge = document.getElementById('streakBadge');
-    if(badge) badge.innerText = `🔥 ${appData.stats.streak}`;
+    if(badge) {
+        // SVG do Fogo (Flame) para manter visual consistente via JS
+        const flameIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0 1.1.2 2.2.5 3z"/></svg>`;
+        badge.innerHTML = `${flameIcon} ${appData.stats.streak}`;
+    }
 }
 
 export function updatePacingUI() {
@@ -474,6 +492,7 @@ export function updatePacingUI() {
     if(!btn) return;
     
     const interval = appData.settings?.planInterval || 1;
+    // Removidos emojis nos labels
     const planConfig = {
         1: { label: "Diário", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
         2: { label: "Alternado", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>' },
@@ -487,15 +506,12 @@ export function updatePacingUI() {
     const indicatorEl = document.getElementById('activePlanIcon');
     if(indicatorEl) indicatorEl.innerHTML = currentConfig.icon;
 
-    // --- NOVA LÓGICA DE SELEÇÃO VISUAL DO MODAL (CARD ATIVO) ---
-    // Remove seleção de todos
+    // Seleção visual do Card
     document.querySelectorAll('.plan-card-option').forEach(el => el.classList.remove('is-selected'));
-    // Adiciona seleção ao atual
     const activeCard = document.getElementById(`planOption${interval}`);
     if (activeCard) {
         activeCard.classList.add('is-selected');
     }
-    // ------------------------------------------------------------
 
     // Lógica de Bloqueio do Botão Principal (Pacing)
     let lastDate = null;
@@ -531,7 +547,7 @@ function setPacingState(btn, state) {
 
 export function openPlanModal() { 
     document.getElementById('planModal').style.display = 'flex'; 
-    updatePacingUI(); // Garante que a classe visual seja atualizada ao abrir
+    updatePacingUI(); 
 }
 export function closePlanModal() { document.getElementById('planModal').style.display = 'none'; }
 export function selectPlan(days) {
