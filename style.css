@@ -59,11 +59,10 @@ header {
     padding-bottom: 20px;
 }
 
-/* Header Brand Refatorado - Logo com Moldura */
 .brand-area {
     display: flex;
     align-items: center;
-    gap: 15px; /* Espaço entre logo e texto */
+    gap: 15px; 
 }
 
 .logo-frame {
@@ -71,13 +70,13 @@ header {
     height: 54px;
     background: var(--white);
     border: 1px solid var(--border);
-    border-radius: 12px; /* Borda suave */
-    padding: 4px; /* Espaço interno da moldura */
+    border-radius: 12px; 
+    padding: 4px; 
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* Impede que o logo encolha em telas pequenas */
+    flex-shrink: 0; 
 }
 
 .logo-frame img {
@@ -101,7 +100,7 @@ header {
     width: 1px; height: 24px; background-color: var(--border); margin: 0 5px;
 }
 
-/* Badge de Versão Discreto */
+/* Badge de Versão */
 .version-pill {
     font-size: 0.75rem;
     color: #999;
@@ -115,7 +114,7 @@ header {
 }
 .version-pill:hover { background: var(--border); color: var(--text); }
 
-/* Botões de Ícone (Professional Style) */
+/* Botões de Ícone */
 .btn-icon {
     background: var(--white);
     border: 1px solid var(--border);
@@ -142,7 +141,7 @@ header {
     background-color: #e74c3c;
     border-radius: 50%;
     border: 2px solid var(--white);
-    display: none; /* Ativado via JS */
+    display: none; 
 }
 .btn-icon.has-alert .notification-dot { display: block; }
 
@@ -166,7 +165,6 @@ header {
     padding: 20px;
     margin-bottom: 30px;
     box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1);
-    /* Garante visibilidade */
     display: block; 
     animation: fadeIn 0.5s ease;
 }
@@ -199,7 +197,6 @@ header {
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-/* Estado Vazio do Dashboard */
 .dash-empty-state {
     text-align: center;
     padding: 20px;
@@ -210,6 +207,50 @@ header {
     border-radius: 8px;
     border: 1px dashed var(--border);
 }
+
+/* --- NOVO: INPUT SECTION (ACCORDION DE CADASTRO) --- */
+/* Refinamento v1.2.0: Encapsula formulário e substitui emojis */
+
+.input-section {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 25px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.input-header {
+    padding: 15px 20px;
+    background: var(--white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background 0.2s;
+}
+
+.input-header:hover { background: var(--hover-bg); }
+.input-header h4 { margin: 0; color: var(--primary); font-size: 1rem; display: flex; align-items: center; }
+
+/* Corpo do formulário (Animação) */
+.input-body {
+    padding: 20px;
+    background: var(--white);
+    animation: fadeInBody 0.3s ease;
+}
+
+/* Estados do Accordion de Input */
+.input-section.collapsed .input-body { display: none; }
+.input-section:not(.collapsed) .input-header {
+    border-bottom: 1px solid var(--border);
+    background: var(--hover-bg);
+}
+.input-section.collapsed .chevron-icon { transform: rotate(-90deg); }
+
 
 /* --- FORM --- */
 .form-grid {
@@ -254,7 +295,6 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     transition: all 0.2s;
     cursor: default;
 }
-/* Alerta de Sobrecarga no Chip */
 .date-chip.is-overloaded {
     border-color: var(--danger-text);
     color: var(--danger-text);
@@ -272,7 +312,6 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     text-transform: uppercase; letter-spacing: 0.5px;
     cursor: pointer; transition: all 0.3s;
     box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-    /* Ajuste para SVG centralizado */
     display: flex; align-items: center; justify-content: center;
 }
 .btn-main:hover {
@@ -280,7 +319,7 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     transform: translateY(-1px);
 }
 
-/* Botão Limpar Tudo (Novo Estilo) */
+/* Botão Limpar Tudo / Cancelar */
 .btn-ghost-danger {
     background: transparent; border: 1px solid transparent;
     color: var(--text); opacity: 0.6;
@@ -302,25 +341,23 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: 12px;
-    overflow: hidden; /* Importante para conter animação e scroll */
+    overflow: hidden; 
     transition: box-shadow 0.3s ease;
 }
 
-/* Header que funciona como botão de abrir */
 .history-header {
     padding: 15px 20px;
     background: var(--hover-bg);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer; /* Indica clicável */
+    cursor: pointer; 
     user-select: none;
-    border-bottom: 1px solid transparent; /* Preparação para estado aberto */
+    border-bottom: 1px solid transparent; 
     transition: background 0.2s;
 }
 .history-header:hover { background: #eaeaea; }
 
-/* Controles (Search + Toggle) */
 .header-controls { display: flex; gap: 10px; align-items: center; }
 
 /* Input de Busca Animado */
@@ -329,18 +366,17 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     font-size: 0.85rem;
     border-radius: 20px;
     border: 1px solid var(--border);
-    width: 100px; /* Começa pequeno para mobile */
+    width: 100px;
     transition: width 0.3s, border-color 0.3s;
     background: var(--white);
     color: var(--text);
 }
 .search-wrapper input:focus { 
-    width: 160px; /* Expande ao focar */
+    width: 160px;
     border-color: var(--accent); 
     outline: none;
 }
 
-/* Botão de Seta */
 .btn-toggle {
     background: transparent;
     border: none;
@@ -348,39 +384,35 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; }
     display: flex; align-items: center; justify-content: center;
     padding: 0;
     color: var(--text);
-    width: 32px; height: 32px; /* Área de toque melhor */
+    width: 32px; height: 32px; 
 }
 
-/* Ícone com rotação */
 .chevron-icon { 
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
 }
 
-/* Estado Recolhido (Padrão) */
+/* Estado Recolhido Histórico */
 .history-section.collapsed .history-body { display: none; }
 .history-section.collapsed .history-header { border-bottom-color: transparent; }
 .history-section.collapsed .chevron-icon { transform: rotate(-90deg); }
 
-/* Estado Expandido - Linha divisória aparece */
 .history-section:not(.collapsed) .history-header {
     border-bottom: 1px solid var(--border);
 }
 
-/* Corpo do Histórico */
 .history-body { 
     padding: 15px; 
     animation: fadeInBody 0.3s ease;
     background: var(--white);
 }
 
-/* Scroll Inteligente */
 .table-scroll-container {
-    max-height: 300px; /* Limita altura para teclado não cobrir tudo */
+    max-height: 300px;
     overflow-y: auto;
     margin-top: 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    scrollbar-width: thin; /* Firefox */
+    scrollbar-width: thin; 
 }
 
 @keyframes fadeInBody { from { opacity: 0; } to { opacity: 1; } }
@@ -391,16 +423,15 @@ th { text-align: left; background: var(--hover-bg); padding: 10px; border-bottom
 td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); }
 .delete-btn { color: #e74c3c; cursor: pointer; font-weight: bold; border:none; background:none;}
 
-/* Botão de Edição na Tabela */
 .edit-btn {
     color: var(--accent);
     cursor: pointer;
     font-weight: bold;
     border: none;
     background: none;
-    margin-right: 8px; /* Espaço do botão deletar */
+    margin-right: 8px; 
     transition: transform 0.2s;
-    padding: 4px; /* Área de toque */
+    padding: 4px;
 }
 .edit-btn:hover {
     transform: scale(1.2);
@@ -422,7 +453,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 7 dias por linha */
+    grid-template-columns: repeat(7, 1fr); 
     gap: 6px;
 }
 .day-cell {
@@ -438,16 +469,14 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 .day-cell:hover { border-color: var(--accent); }
 
-/* Cores de Carga */
 .load-0 { opacity: 0.5; }
 .load-low { background: var(--success-bg); color: var(--success-text); border-color: var(--success-bg); }
 .load-med { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-bg); }
 
-/* Feedback de Sobrecarga no Radar (Borda Vermelha) */
 .load-high { 
     background: var(--danger-bg); 
     color: var(--danger-text); 
-    border: 2px solid #e74c3c !important; /* Força borda vermelha */
+    border: 2px solid #e74c3c !important; 
     font-weight: bold; 
 }
 
@@ -467,7 +496,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     display: flex; flex-direction: column;
     color: var(--text);
 }
-.large-content { max-width: 800px; } /* Modal Largo para Radar */
+.large-content { max-width: 800px; } 
 
 .modal-header {
     display: flex; justify-content: space-between; align-items: center;
@@ -494,7 +523,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .verse-item:hover { background: var(--white); border-color: var(--accent); }
 
 .flashcard {
-    background-color: transparent; width: 100%; height: 360px; /* Aumentado ligeiramente para caber controles */
+    background-color: transparent; width: 100%; height: 360px;
     perspective: 1000px; cursor: pointer; margin-bottom: 15px;
 }
 .flashcard-inner {
@@ -514,9 +543,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     overflow-y: auto;
 }
 
-/* --- OVERRIDE ESPECÍFICO PARA A FRENTE DO CARTÃO (CORREÇÃO DE LAYOUT) --- */
 .flashcard-front {
-    /* Alinha o conteúdo ao topo para evitar cortes ou 'dança' de texto */
     justify-content: flex-start;
     padding-top: 40px;
 }
@@ -524,11 +551,9 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .flashcard-front h2 { color: var(--accent); }
 .cloze-text { font-size: 1.2rem; font-style: italic; opacity: 0.8; }
 
-/* --- NOVOS ESTILOS: NEURO UPGRADE --- */
-
 /* Modo Primeira Letra */
 .first-letter-mode {
-    font-family: 'Courier New', monospace; /* Fonte monoespaçada para ritmo */
+    font-family: 'Courier New', monospace; 
     font-weight: bold;
     letter-spacing: 3px;
     color: var(--primary);
@@ -536,7 +561,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     line-height: 1.6;
 }
 
-/* Container de Controles da Frente */
 .front-controls {
     margin-top: auto;
     display: flex;
@@ -546,8 +570,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 100%;
 }
 
-/* --- v1.1.6: ANIMAÇÕES & FLUIDEZ --- */
-/* Suavização visual para troca de conteúdo no card */
 .card-content-transition {
     transition: opacity 0.2s ease-in-out, transform 0.2s ease;
     opacity: 1;
@@ -556,20 +578,19 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 
 .card-content-hidden {
     opacity: 0;
-    transform: translateY(5px); /* Leve movimento para baixo ao sair */
+    transform: translateY(5px); 
 }
 
-/* --- v1.1.6: CONTROLES BIFURCADOS (Quick Skip) --- */
+/* Controles Bifurcados */
 .hint-controls-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 12px; /* Espaço vertical entre os botões */
+    gap: 12px;
     width: 100%;
     align-items: center;
     margin-bottom: 15px;
 }
 
-/* Estilo para o Botão Secundário (Pular Explicação / Ver Explicação) */
 .btn-ghost-accent {
     background: transparent;
     color: var(--accent);
@@ -592,7 +613,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     transform: translateY(-1px);
 }
 
-/* Botão de Dica (Padrão) */
 .btn-hint {
     background: transparent;
     border: 1px dashed var(--accent);
@@ -603,7 +623,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     font-size: 0.85rem;
     transition: all 0.2s;
     opacity: 0.8;
-    /* Adições para SVG Flexbox */
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -615,7 +634,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     transform: translateY(-2px);
 }
 
-/* Ações de Feedback (Verso) */
 .feedback-actions {
     margin-top: 20px;
     display: flex;
@@ -623,17 +641,15 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 100%;
 }
 
-/* Botões de Feedback */
 .btn-feedback {
     flex: 1; 
     padding: 12px; 
     border: none; 
     border-radius: 8px;
     color: white; 
-    font-weight: 600; /* Mais peso para legibilidade */
+    font-weight: 600; 
     cursor: pointer;
     transition: transform 0.2s, background-color 0.2s;
-    /* Adições para SVG Flexbox */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -641,10 +657,9 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     font-size: 0.95rem;
 }
 .btn-feedback:hover { transform: scale(1.03); }
-.btn-feedback.hard { background: #e74c3c; } /* Vermelho */
-.btn-feedback.easy { background: #27ae60; } /* Verde */
+.btn-feedback.hard { background: #e74c3c; } 
+.btn-feedback.easy { background: #27ae60; } 
 
-/* Estilos Globais para SVGs dentro dos botões */
 .btn-feedback svg,
 .btn-hint svg {
     width: 18px;
@@ -652,9 +667,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     stroke-width: 2.5px;
 }
 
-/* ------------------------------------- */
-
-/* Alerta de Sobrecarga */
 .overload-alert {
     background: var(--warning-bg);
     border: 1px solid var(--warning-text);
@@ -682,7 +694,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 .btn-reschedule:hover { transform: scale(1.05); background: #fff8e1; }
 
-/* Novo Ícone Delicado do Flashcard */
 .tap-hint-icon {
     margin-top: auto;
     color: var(--accent);
@@ -692,19 +703,18 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 .flashcard:hover .tap-hint-icon { opacity: 1; }
 .tap-hint-icon svg {
-    animation: spinSlow 10s linear infinite; /* Rotação super suave */
+    animation: spinSlow 10s linear infinite; 
 }
 
 @keyframes spinSlow { 100% { transform: rotate(360deg); } }
 
-/* Botão Voltar Profissional */
 .btn-back-list {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text);
     opacity: 0.7;
-    width: auto; /* Não ocupa largura total */
-    margin: 10px auto 0; /* Centralizado */
+    width: auto; 
+    margin: 10px auto 0; 
     display: flex; align-items: center; gap: 8px;
     padding: 8px 20px;
     border-radius: 20px;
@@ -728,30 +738,32 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
    FUNCIONALIDADES: PACING & STREAK
    ========================================= */
 
-/* Wrapper para alinhar botão e badge */
 .pacing-wrapper {
     position: relative;
     display: inline-block;
 }
 
-/* Badge de Streak */
+/* Badge de Streak - Atualizado para SVG Flex v1.2.0 */
 .streak-badge {
     position: absolute; bottom: -8px; right: -8px;
-    background: var(--white); /* Fundo branco/claro */
-    color: var(--accent);     /* Texto na cor de destaque */
+    background: var(--white);
+    color: var(--accent);
     font-size: 0.65rem; font-weight: bold;
     padding: 2px 6px; border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Sombra suave */
-    border: 1px solid var(--accent); /* Borda fina */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid var(--accent); 
     z-index: 10;
     cursor: help;
     pointer-events: none;
+    /* Adição v1.2.0 para SVG */
+    display: flex; align-items: center; gap: 4px;
 }
+.streak-badge svg { width: 10px; height: 10px; stroke-width: 3px; }
 
 /* Plan Indicator */
 .plan-indicator {
     position: absolute;
-    top: -6px; left: -6px; /* Canto superior esquerdo */
+    top: -6px; left: -6px; 
     width: 20px; height: 20px;
     background: var(--white);
     border: 1px solid var(--border);
@@ -765,7 +777,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .plan-indicator:hover { transform: scale(1.1); }
 .plan-indicator svg { width: 12px; height: 12px; }
 
-/* Botão de Ritmo */
 .pacing-btn {
     position: relative;
     border: 2px solid var(--border);
@@ -777,7 +788,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 100%; height: 100%;
 }
 
-/* Estados Visuais do Botão de Ritmo */
 .pacing-btn.is-blocked {
     border-color: #e74c3c;
     color: #e74c3c;
@@ -818,12 +828,11 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     font-size: 0.9rem; color: var(--accent);
 }
 
-/* --- MODAL DE CONFLITO - AÇÕES --- */
 .conflict-actions {
     display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;
 }
 
-/* --- TOAST NOTIFICATIONS --- */
+/* --- TOAST NOTIFICATIONS (Atualizado v1.2.0: Flex para SVG) --- */
 .toast-box {
     position: fixed; bottom: 30px; left: 50%;
     transform: translateX(-50%);
@@ -840,8 +849,8 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     display: flex; align-items: center; gap: 10px;
     pointer-events: auto;
 }
+.toast svg { width: 18px; height: 18px; flex-shrink: 0; }
 
-/* Toast Variants */
 .toast.warning { background: #d35400; }
 .toast.success { background: #27ae60; }
 .toast.error { background: #c0392b; }
@@ -852,24 +861,20 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 
 /* --- RESPONSIVIDADE MOBILE & AUTH --- */
-/* Status Dot para o botão de Login */
 #authStatusDot {
     width: 8px; height: 8px;
     border: 2px solid var(--white);
     top: 2px; right: 2px;
 }
 
-/* Ajustes Mobile Globais */
 @media (max-width: 600px) {
-    /* Ajuste do Container Principal */
-    body { padding: 10px; } /* Menos padding na borda da tela */
+    body { padding: 10px; } 
     .container { 
         padding: 15px; 
         width: 100%; 
-        box-sizing: border-box; /* Garante que padding não estoure a largura */
+        box-sizing: border-box; 
     }
 
-    /* Header Empilhado */
     header {
         flex-direction: column;
         align-items: flex-start;
@@ -878,27 +883,23 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     
     .top-controls {
         width: 100%;
-        justify-content: space-between; /* Espalha os ícones */
+        justify-content: space-between; 
     }
 
-    /* Formulário em Coluna Única */
     .form-grid {
-        grid-template-columns: 1fr; /* Força 1 coluna em vez de 2 */
+        grid-template-columns: 1fr; 
         gap: 10px;
     }
     
-    /* Ajustes de Modal */
     .modal-content {
-        width: 95%; /* Ocupa quase toda a tela */
+        width: 95%; 
         padding: 20px;
         margin: auto;
     }
     
-    /* Ajuste do Input de Busca no Mobile */
     .search-wrapper input:focus { width: 120px; }
 }
 
-/* Estilo para o botão de Desfazer no Toast */
 .toast-undo-btn {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.4);
@@ -918,7 +919,7 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .mnemonic-box {
     background-color: var(--hover-bg);
     border-left: 3px solid var(--accent);
-    padding: 20px; /* Aumentado o padding para mais respiro */
+    padding: 20px; 
     margin: 10px 0 20px 0;
     border-radius: 0 8px 8px 0;
     text-align: center;
@@ -926,12 +927,8 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     animation: fadeIn 0.5s ease;
     max-width: 100%;
     box-sizing: border-box;
-    
-    /* CORREÇÃO DO SCROLLBAR */
-    max-height: none; /* Remove limitação de altura */
-    overflow-y: visible; /* Permite que o conteúdo cresça */
-    
-    /* Flex para centralizar conteúdo */
+    max-height: none; 
+    overflow-y: visible; 
     flex-grow: 1;
     display: flex;
     align-items: center;
@@ -942,13 +939,12 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
 .mnemonic-text {
     font-style: italic;
     color: var(--primary);
-    font-size: 1.1rem; /* Fonte ligeiramente aumentada */
+    font-size: 1.1rem; 
     font-weight: 500;
-    margin: 0; /* Remove margens desnecessárias */
-    line-height: 1.5; /* Melhor leitura */
+    margin: 0; 
+    line-height: 1.5; 
 }
 
-/* Efeito de Blur para o texto de suporte (Scaffolding) */
 .blur-text {
     filter: blur(5px);
     opacity: 0.3;
@@ -957,10 +953,10 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     transition: all 0.5s ease;
 }
 
-/* --- SPLASH SCREEN (v1.1.4) --- */
+/* --- SPLASH SCREEN --- */
 .splash-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: var(--bg); /* Usa a cor de fundo do tema (Dark/Light) */
+    background-color: var(--bg); 
     z-index: 9999;
     display: flex; justify-content: center; align-items: center;
     transition: opacity 0.6s ease-out, visibility 0.6s;
@@ -1012,7 +1008,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Cabeçalho Limpo dos Modais */
 .modal-header-styled {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 25px; padding-bottom: 15px;
@@ -1035,12 +1030,11 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     padding: 15px; border-radius: 12px;
     text-align: left; cursor: pointer;
     transition: all 0.2s ease; position: relative;
-    width: 100%; /* Garante largura total */
+    width: 100%; 
 }
 
 .plan-card-option:hover { background: var(--white); border-color: #dcdcdc; transform: translateY(-2px); }
 
-/* Estado Ativo (Selecionado) */
 .plan-card-option.is-selected {
     background: var(--white);
     border-color: var(--accent);
@@ -1056,7 +1050,11 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     width: 45px; height: 45px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    /* Ajuste v1.2.0: Flex para SVG */
+    color: var(--primary); 
 }
+.plan-icon-wrapper svg { width: 24px; height: 24px; } /* Garante tamanho do SVG */
+
 .plan-info h4 { margin: 0 0 4px 0; color: var(--primary); font-size: 1rem; }
 .plan-info small { display: block; color: var(--text); opacity: 0.7; font-size: 0.8rem; line-height: 1.2; }
 
@@ -1086,7 +1084,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     display: inline-block;
 }
 
-/* Botão de Logout Estilizado */
 .btn-logout-styled {
     width: 100%; padding: 12px;
     background: var(--white); border: 1px solid var(--danger-text);
@@ -1099,7 +1096,6 @@ td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); 
     background: var(--danger-bg);
 }
 
-/* Input Styles para Auth */
 .auth-form-wrapper { display: flex; flex-direction: column; gap: 15px; }
 .auth-form-wrapper input { border: 2px solid var(--border); padding: 12px 15px; border-radius: 8px; }
 .auth-form-wrapper input:focus { border-color: var(--accent); }
