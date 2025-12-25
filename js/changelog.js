@@ -2,6 +2,17 @@
 
 const systemChangelog = [
     {
+        version: "1.2.0",
+        date: "2025-12-25",
+        title: "Profissionalização & UX Limpa",
+        changes: [
+            "✨ <b>Interface Focada:</b> O formulário de cadastro de versículos agora fica recolhido em um painel 'Accordion', reduzindo a poluição visual e priorizando as revisões do dia.",
+            "🎨 <b>Design System Sóbrio:</b> Substituição completa de emojis por ícones vetoriais (SVG) finos e elegantes em todo o sistema (alertas, modos de ritmo e feedbacks).",
+            "🛡️ <b>Feedbacks Profissionais:</b> As mensagens de sistema (Toasts) agora utilizam uma linguagem visual mais técnica e consistente.",
+            "⚙️ <b>Fluxo de Edição:</b> Ao editar um versículo, o painel de cadastro se expande automaticamente para facilitar o ajuste."
+        ]
+    },
+    {
         version: "1.1.9",
         date: "2025-12-25",
         title: "UX Premium & Sync Robusto",
