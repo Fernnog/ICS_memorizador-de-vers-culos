@@ -58,7 +58,7 @@ window.closeAuthModal = window.closeAuthModal || function(){ document.getElement
 // --- 4. INICIALIZAÇÃO DO SISTEMA ---
 
 window.onload = function() {
-    console.log('[System] Inicializando NeuroBible v1.1.7 Modular...');
+    console.log('[System] Inicializando NeuroBible v1.1.9 Modular...');
 
     // A. Service Worker (PWA)
     if ('serviceWorker' in navigator) {
@@ -107,8 +107,9 @@ window.onload = function() {
         setTimeout(() => { if(splash) splash.style.display = 'none'; }, 600);
     }, 1500);
     
-    // F. Sync Inicial com Firebase
+    // F. Sync Inicial com Firebase & Fila Offline
     setTimeout(() => {
+        // Carrega dados da nuvem
         if (window.loadVersesFromFirestore) {
             window.loadVersesFromFirestore((cloudVerses) => {
                 if (cloudVerses && cloudVerses.length > 0) {
@@ -116,5 +117,11 @@ window.onload = function() {
                 }
             });
         }
+
+        // --- NOVO v1.1.9: Processa Fila de Offline ---
+        if (window.processSyncQueue) {
+            window.processSyncQueue();
+        }
+
     }, 2000);
 };
