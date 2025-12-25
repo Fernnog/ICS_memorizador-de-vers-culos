@@ -1,14 +1,14 @@
-// firebase.js - Conexão Nuvem e Autenticação (Atualizado v1.1.9 - Offline Sync)
+// js/firebase.js - Conexão Nuvem e Autenticação (v1.2.0 - Sync Fix)
 
 // 1. CONFIGURAÇÃO DO FIREBASE
 const firebaseConfig = {
-apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
-  authDomain: "neurobible-5b44f.firebaseapp.com",
-  projectId: "neurobible-5b44f",
-  storageBucket: "neurobible-5b44f.firebasestorage.app",
-  messagingSenderId: "1050657162706",
-  appId: "1:1050657162706:web:03d8101b6b6e15d92bf40b",
-  measurementId: "G-P92Z7DFW7N"
+    apiKey: "AIzaSyBcwdrOVkKdM9wCNXIH-G-wM7D07vpBJIQ",
+    authDomain: "neurobible-5b44f.firebaseapp.com",
+    projectId: "neurobible-5b44f",
+    storageBucket: "neurobible-5b44f.firebasestorage.app",
+    messagingSenderId: "1050657162706",
+    appId: "1:1050657162706:web:03d8101b6b6e15d92bf40b",
+    measurementId: "G-P92Z7DFW7N"
 };
 
 // Inicialização segura
@@ -26,7 +26,7 @@ try {
     console.error("Erro ao inicializar Firebase. Verifique suas chaves de API.", error);
 }
 
-// --- NOVO: GERENCIADOR DE FILA OFFLINE (SYNC QUEUE) ---
+// --- GESTÃO DE FILA OFFLINE (SYNC QUEUE) ---
 
 // Adiciona item à fila local quando falha a rede
 function addToSyncQueue(action, collection, docId, data) {
@@ -70,6 +70,11 @@ window.addEventListener('online', () => {
     if(dot && currentUser) dot.style.backgroundColor = "#2ecc71"; 
 
     window.processSyncQueue();
+    
+    // Tenta puxar dados atualizados ao reconectar
+    if(window.loadVersesFromFirestore && window.handleCloudData) {
+        window.loadVersesFromFirestore(window.handleCloudData);
+    }
 });
 
 window.addEventListener('offline', () => {
@@ -102,10 +107,14 @@ if (auth) {
             // Indicador visual no header (Verde se online)
             if (dot) dot.style.backgroundColor = navigator.onLine ? "#2ecc71" : "#e74c3c";
 
-            // Tenta carregar dados assim que logar
+            // CRÍTICO: Carrega dados e passa para a PONTE no main.js
             if (window.loadVersesFromFirestore) {
                 window.loadVersesFromFirestore((data) => {
-                   if(data) console.log('Sincronização pós-login concluída.');
+                   if(window.handleCloudData && data) {
+                       window.handleCloudData(data);
+                   } else {
+                       console.log('Dados baixados, mas UI ainda não pronta.');
+                   }
                 });
             }
             
@@ -156,11 +165,13 @@ window.handleLogin = function() {
 window.handleLogout = function() {
     auth.signOut().then(() => {
         window.showToast("Você saiu da conta.", "warning");
+        // Opcional: Limpar dados locais ao sair
+        // window.clearData(); 
     });
 };
 
 
-// --- 3. INTEGRAÇÃO COM FIRESTORE (Database) - ATUALIZADO ---
+// --- 3. INTEGRAÇÃO COM FIRESTORE (Database) ---
 
 // Salvar Versículo (Com Retry/Queue)
 window.saveVerseToFirestore = function(verse, isRetry = false) {
@@ -171,7 +182,7 @@ window.saveVerseToFirestore = function(verse, isRetry = false) {
         .then(() => {
             console.log("Versículo salvo na nuvem:", verse.ref);
             // Feedback Visual: Apenas se não for retry automático
-            if (!isRetry && window.showToast) window.showToast("☁️ Salvo na nuvem", "success");
+            if (!isRetry && window.showToast) window.showToast("Salvo na nuvem", "success");
         })
         .catch((err) => {
             console.warn("Falha no save, adicionando à fila:", err);
@@ -193,10 +204,11 @@ window.saveSettingsToFirestore = function(settings, isRetry = false) {
         });
 };
 
-// Carregar Dados (Mantido Igual)
+// Carregar Dados
 window.loadVersesFromFirestore = function(callback) {
     if (!currentUser || !db) return;
 
+    // Carrega Configurações
     db.collection('users').doc(currentUser.uid).get()
         .then((doc) => {
             if (doc.exists && doc.data().settings) {
@@ -207,15 +219,15 @@ window.loadVersesFromFirestore = function(callback) {
             }
         });
 
+    // Carrega Versículos
     db.collection('users').doc(currentUser.uid).collection('verses').get()
         .then((querySnapshot) => {
             const cloudVerses = [];
             querySnapshot.forEach((doc) => {
                 cloudVerses.push(doc.data());
             });
-            if (cloudVerses.length > 0) {
-                callback(cloudVerses);
-            }
+            // Sempre chama o callback, mesmo vazio, para atualizar estado
+            callback(cloudVerses);
         })
         .catch((error) => console.error("Erro ao baixar dados:", error));
 };
@@ -228,7 +240,7 @@ window.handleCloudDeletion = function(id, isRetry = false) {
         .delete()
         .then(() => {
             console.log("Item deletado da nuvem.");
-            if (!isRetry && window.showToast) window.showToast("🗑️ Removido da nuvem", "success");
+            if (!isRetry && window.showToast) window.showToast("Removido da nuvem", "success");
         })
         .catch((error) => {
             console.error("Erro ao deletar na nuvem:", error);

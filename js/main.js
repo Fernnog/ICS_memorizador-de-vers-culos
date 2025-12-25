@@ -1,10 +1,11 @@
 // js/main.js
 
 // 1. Importações de Módulos (Core & Utils)
-import { runSanityCheck, appData } from './core.js';
+// NOTA: Adicionamos setAppData para atualizar o estado global ao receber dados da nuvem
+import { runSanityCheck, appData, setAppData } from './core.js';
 import { loadFromStorage, saveToStorage } from './storage.js';
 import { initChangelog } from './changelog.js'; 
-import { getLocalDateISO } from './utils.js';
+import { getLocalDateISO, showToast } from './utils.js';
 
 // 2. Importações de Funcionalidades
 import * as uiDashboard from './ui-dashboard.js';
@@ -25,7 +26,7 @@ window.filterHistory = uiDashboard.filterHistory;
 window.openChangelog = uiDashboard.openChangelog;
 window.closeChangelog = uiDashboard.closeChangelog;
 
-// NOVO v1.2.0: Controle do Painel de Cadastro Recolhível
+// NOVA FUNÇÃO v1.2.0: Toggle do Painel de Cadastro
 window.toggleInputSection = uiDashboard.toggleInputSection;
 
 // Funções de CRUD e Processamento
@@ -50,7 +51,7 @@ window.backToList = flashcardLogic.backToList;
 window.closeReview = flashcardLogic.closeReview;
 window.rescheduleDailyLoad = flashcardLogic.rescheduleDailyLoad; 
 
-// NOVAS FUNÇÕES EXPOSTAS (v1.1.7 - Fluxo Bifurcado)
+// Funções de Treino (Fluxo Bifurcado v1.1.7+)
 window.toggleExplanation = flashcardLogic.toggleExplanation;
 window.advanceStage = flashcardLogic.advanceStage;
 
@@ -58,7 +59,33 @@ window.advanceStage = flashcardLogic.advanceStage;
 window.openAuthModal = window.openAuthModal || function(){ document.getElementById('authModal').style.display='flex'; };
 window.closeAuthModal = window.closeAuthModal || function(){ document.getElementById('authModal').style.display='none'; };
 
-// --- 4. INICIALIZAÇÃO DO SISTEMA ---
+// --- 4. PONTE DE SINCRONIZAÇÃO (CLOUD -> UI) ---
+// Esta função é chamada pelo firebase.js ou pelo onload quando dados chegam
+window.handleCloudData = function(cloudVerses) {
+    if (cloudVerses && cloudVerses.length > 0) {
+        console.log('[Sync] Recebendo dados da nuvem:', cloudVerses.length, 'itens.');
+        
+        // 1. Atualiza o Estado Global na Memória
+        setAppData({ ...appData, verses: cloudVerses });
+        
+        // 2. Persiste no LocalStorage (para funcionar offline na próxima vez)
+        saveToStorage();
+        
+        // 3. Força a renderização completa da UI
+        uiDashboard.updateTable();
+        uiDashboard.updateRadar();
+        uiDashboard.updatePacingUI();
+        uiDashboard.renderDashboard();
+        uiDashboard.checkStreak();
+        
+        // Feedback visual discreto
+        if(window.showToast) window.showToast("Sincronizado com sucesso!", "success");
+    } else {
+        console.log('[Sync] Conectado, mas nenhum dado na nuvem.');
+    }
+};
+
+// --- 5. INICIALIZAÇÃO DO SISTEMA ---
 
 window.onload = function() {
     console.log('[System] Inicializando NeuroBible v1.2.0 Modular...');
@@ -70,7 +97,7 @@ window.onload = function() {
             .catch(err => console.error('[SW] Falha ao registrar:', err));
     }
 
-    // B. Carregar Dados
+    // B. Carregar Dados Locais
     initChangelog();
     loadFromStorage();
     
@@ -111,17 +138,17 @@ window.onload = function() {
     }, 1500);
     
     // F. Sync Inicial com Firebase & Fila Offline
+    // Adicionado delay para garantir que auth.currentUser esteja pronto
     setTimeout(() => {
-        // Carrega dados da nuvem
+        // Tenta buscar da nuvem se estiver logado
         if (window.loadVersesFromFirestore) {
             window.loadVersesFromFirestore((cloudVerses) => {
-                if (cloudVerses && cloudVerses.length > 0) {
-                    console.log('[Cloud] Dados sincronizados.');
-                }
+                // CHAMA A PONTE PARA ATUALIZAR A TELA
+                window.handleCloudData(cloudVerses);
             });
         }
 
-        // --- NOVO v1.1.9: Processa Fila de Offline ---
+        // Processa Fila de Offline (Sync Queue)
         if (window.processSyncQueue) {
             window.processSyncQueue();
         }
