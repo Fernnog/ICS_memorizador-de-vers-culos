@@ -25,6 +25,9 @@ window.filterHistory = uiDashboard.filterHistory;
 window.openChangelog = uiDashboard.openChangelog;
 window.closeChangelog = uiDashboard.closeChangelog;
 
+// NOVO v1.2.0: Controle do Painel de Cadastro Recolhível
+window.toggleInputSection = uiDashboard.toggleInputSection;
+
 // Funções de CRUD e Processamento
 window.processAndGenerate = uiDashboard.processAndGenerate; 
 window.startEdit = uiDashboard.startEdit;
@@ -58,7 +61,7 @@ window.closeAuthModal = window.closeAuthModal || function(){ document.getElement
 // --- 4. INICIALIZAÇÃO DO SISTEMA ---
 
 window.onload = function() {
-    console.log('[System] Inicializando NeuroBible v1.1.9 Modular...');
+    console.log('[System] Inicializando NeuroBible v1.2.0 Modular...');
 
     // A. Service Worker (PWA)
     if ('serviceWorker' in navigator) {
