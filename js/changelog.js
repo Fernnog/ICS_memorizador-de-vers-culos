@@ -1,6 +1,16 @@
 // js/changelog.js
 const systemChangelog = [
     {
+        version: "1.1.8",
+        date: "2025-12-25",
+        title: "Correções de Nuvem & UI",
+        changes: [
+            "☁️ <b>Sync Robusto:</b> Interações com botões de contexto agora salvam progresso automaticamente no Firebase.",
+            "🎨 <b>Visual Clean:</b> Remoção da versão na tela de carregamento para maior leveza.",
+            "⚙️ <b>Validação:</b> Salvamento de perfil de ritmo auditado."
+        ]
+    },
+    {
         version: "1.1.7",
         date: "2025-12-24",
         title: "Fluxo de Decisão",
