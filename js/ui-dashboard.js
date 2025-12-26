@@ -478,6 +478,11 @@ export function checkStreak() {
         
         appData.stats.lastLogin = today;
         saveToStorage();
+
+        // NOVA CHAMADA: Persistência na Nuvem (Priority 2)
+        if(window.saveStatsToFirestore) {
+            window.saveStatsToFirestore(appData.stats);
+        }
     }
     const badge = document.getElementById('streakBadge');
     if(badge) {
