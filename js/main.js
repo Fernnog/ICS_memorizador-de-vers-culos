@@ -55,6 +55,9 @@ window.rescheduleDailyLoad = flashcardLogic.rescheduleDailyLoad;
 window.toggleExplanation = flashcardLogic.toggleExplanation;
 window.advanceStage = flashcardLogic.advanceStage;
 
+// NOVA FUNÇÃO v1.2.2 (Áudio)
+window.toggleAudio = flashcardLogic.toggleAudio;
+
 // Funções de Auth (Firebase)
 window.openAuthModal = window.openAuthModal || function(){ document.getElementById('authModal').style.display='flex'; };
 window.closeAuthModal = window.closeAuthModal || function(){ document.getElementById('authModal').style.display='none'; };
