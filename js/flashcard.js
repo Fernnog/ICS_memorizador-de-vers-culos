@@ -9,6 +9,77 @@ import { getAcronym, generateClozeText, getLocalDateISO, showToast } from './uti
 import { renderDashboard, updateRadar } from './ui-dashboard.js';
 import { calculateSRSDates, findNextLightDay } from './srs-engine.js';
 
+// --- GESTÃO DE ÁUDIO v1.2.2 ---
+let currentUtterance = null; 
+
+export function stopAudio() {
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+    }
+    resetAudioUI();
+}
+
+function resetAudioUI() {
+    const btn = document.getElementById('btnAudioToggle');
+    const iconSpeaker = document.getElementById('iconSpeaker');
+    const iconStop = document.getElementById('iconStop');
+    const label = document.getElementById('labelAudio');
+
+    if (btn) {
+        btn.classList.remove('is-playing');
+        if(iconSpeaker) iconSpeaker.style.display = 'block';
+        if(iconStop) iconStop.style.display = 'none';
+        if(label) label.innerText = "Ouvir Versículo";
+    }
+}
+
+export function toggleAudio() {
+    // Se já estiver falando, para imediatamente
+    if (window.speechSynthesis.speaking) {
+        stopAudio();
+        return;
+    }
+
+    const textElement = document.getElementById('cardFullText');
+    if (!textElement) return;
+    
+    // Limpeza básica: remove espaços excessivos
+    const textToRead = textElement.innerText.trim();
+    if (!textToRead) return;
+
+    // Configuração da Fala
+    currentUtterance = new SpeechSynthesisUtterance(textToRead);
+    currentUtterance.lang = 'pt-BR'; // Detecta voz PT-BR do sistema
+    currentUtterance.rate = 0.9;     // Levemente mais lento para memorização
+    currentUtterance.pitch = 1.0;
+
+    // Eventos de Ciclo de Vida
+    currentUtterance.onstart = () => {
+        const btn = document.getElementById('btnAudioToggle');
+        const iconSpeaker = document.getElementById('iconSpeaker');
+        const iconStop = document.getElementById('iconStop');
+        const label = document.getElementById('labelAudio');
+        
+        if(btn) {
+            btn.classList.add('is-playing');
+            iconSpeaker.style.display = 'none';
+            iconStop.style.display = 'block';
+            label.innerText = "Parar Leitura";
+        }
+    };
+
+    currentUtterance.onend = () => {
+        resetAudioUI();
+    };
+
+    currentUtterance.onerror = (e) => {
+        console.warn("Erro TTS:", e);
+        resetAudioUI();
+    };
+
+    window.speechSynthesis.speak(currentUtterance);
+}
+
 // --- ÍCONES SVG ---
 const ICONS = {
     target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
@@ -68,6 +139,7 @@ export function startFlashcard(verseId) {
     
     renderCardContent(verse);
     updateHintButtonUI(); 
+    resetAudioUI(); // Garante UI limpa ao abrir novo card
 }
 
 // Lógica de Renderização com Animação
@@ -240,6 +312,9 @@ export function registerInteraction(verse) {
 }
 
 export function handleDifficulty(level) {
+    // CRÍTICO: Para o áudio antes de processar saída
+    stopAudio();
+
     const verseIndex = appData.verses.findIndex(v => v.id === currentReviewId.value);
     if (verseIndex === -1) return;
     const verse = appData.verses[verseIndex];
@@ -285,15 +360,23 @@ export function handleDifficulty(level) {
 }
 
 export function flipCard() {
+    // CRÍTICO: Para o áudio se o usuário desvirar o cartão
+    stopAudio();
     document.getElementById('flashcardInner').classList.toggle('is-flipped');
 }
 
 export function backToList() {
+    // CRÍTICO: Para o áudio ao voltar para a lista
+    stopAudio();
+
     document.getElementById('reviewListContainer').style.display = 'block';
     document.getElementById('flashcardContainer').style.display = 'none';
     document.getElementById('flashcardInner').classList.remove('is-flipped');
 }
 
 export function closeReview() {
+    // CRÍTICO: Para o áudio ao fechar modal
+    stopAudio();
+
     document.getElementById('reviewModal').style.display = 'none';
 }
