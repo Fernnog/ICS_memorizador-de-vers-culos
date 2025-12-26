@@ -87,7 +87,7 @@
         
         <div class="top-controls">
             <div class="version-pill" onclick="window.openChangelog()" title="Ver novidades">
-                <span id="currentVersion">v1.2.0</span>
+                <span id="currentVersion">v1.2.2</span>
             </div>
 
             <div class="separator"></div>
@@ -310,6 +310,20 @@
                         <h2 id="cardRefBack">...</h2>
                         <p id="cardFullText">...</p>
                         
+                        <!-- NOVA ÁREA DE ÁUDIO v1.2.2 -->
+                        <div class="audio-controls-wrapper">
+                            <button id="btnAudioToggle" class="btn-audio" onclick="event.stopPropagation(); window.toggleAudio()" title="Ouvir Versículo">
+                                <span id="iconContainer" style="display: flex; align-items: center;">
+                                    <!-- Ícone Speaker (Volume) -->
+                                    <svg id="iconSpeaker" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                    <!-- Ícone Stop (Quadrado) -->
+                                    <svg id="iconStop" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="14" height="16" rx="2" ry="2"/></svg>
+                                </span>
+                                <span id="labelAudio" style="margin-left: 8px;">Ouvir Versículo</span>
+                            </button>
+                        </div>
+                        <!-- FIM DA ÁREA DE ÁUDIO -->
+
                         <div class="feedback-actions">
                             <button class="btn-feedback hard" onclick="event.stopPropagation(); window.handleDifficulty('hard')">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
