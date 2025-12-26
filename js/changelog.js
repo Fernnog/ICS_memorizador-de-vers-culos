@@ -2,6 +2,16 @@
 
 const systemChangelog = [
     {
+        version: "1.2.1",
+        date: "2025-12-26",
+        title: "Sincronia & Robustez",
+        changes: [
+            "💾 <b>Memória Permanente:</b> As configurações de ritmo (Intenso/Equilibrado/Leve) agora são salvas e restauradas da nuvem corretamente. Seus ajustes não serão perdidos ao limpar o cache.",
+            "🔥 <b>Streak Real:</b> Correção no contador de dias consecutivos. A contagem agora é enviada para o servidor instantaneamente ao ser atualizada, garantindo precisão entre dispositivos.",
+            "☁️ <b>Sync Unificado:</b> Otimização profunda na comunicação com o banco de dados. Agora, perfil, estatísticas e versículos são baixados em um único pacote sincronizado, eliminando falhas de carregamento."
+        ]
+    },
+    {
         version: "1.2.0",
         date: "2025-12-25",
         title: "Profissionalização & UX Limpa",
