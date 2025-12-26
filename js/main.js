@@ -61,22 +61,45 @@ window.closeAuthModal = window.closeAuthModal || function(){ document.getElement
 
 // --- 4. PONTE DE SINCRONIZAÇÃO (CLOUD -> UI) ---
 // Esta função é chamada pelo firebase.js ou pelo onload quando dados chegam
-window.handleCloudData = function(cloudVerses) {
-    if (cloudVerses && cloudVerses.length > 0) {
-        console.log('[Sync] Recebendo dados da nuvem:', cloudVerses.length, 'itens.');
+window.handleCloudData = function(payload) {
+    // payload agora contém { verses, settings, stats } (ou array se for versão antiga)
+    const cloudVerses = Array.isArray(payload) ? payload : payload.verses;
+    const cloudSettings = payload.settings;
+    const cloudStats = payload.stats;
+
+    if (cloudVerses) {
+        console.log('[Sync] Recebendo pacote completo da nuvem.');
         
-        // 1. Atualiza o Estado Global na Memória
-        setAppData({ ...appData, verses: cloudVerses });
+        // 1. Prepara o novo estado mesclando com o atual
+        const newState = { 
+            ...appData, 
+            verses: cloudVerses 
+        };
+
+        // 2. Se vieram configurações da nuvem, aplica (prioridade nuvem)
+        if (cloudSettings) {
+            newState.settings = cloudSettings;
+        }
+
+        // 3. Se vieram stats da nuvem, aplica (prioridade nuvem se tiver mais dados)
+        if (cloudStats) {
+            // Se não houver stats local, ou se a nuvem tiver um streak maior/igual, usa a nuvem
+            if (!appData.stats || (cloudStats.streak >= (appData.stats.streak || 0))) {
+                newState.stats = cloudStats;
+            }
+        }
         
-        // 2. Persiste no LocalStorage (para funcionar offline na próxima vez)
+        // 4. Atualiza Estado Global na Memória
+        setAppData(newState);
+        
+        // 5. Persiste no LocalStorage e Renderiza
         saveToStorage();
         
-        // 3. Força a renderização completa da UI
         uiDashboard.updateTable();
         uiDashboard.updateRadar();
-        uiDashboard.updatePacingUI();
+        uiDashboard.updatePacingUI(); // Agora reflete o Perfil correto!
+        uiDashboard.checkStreak();   // Agora reflete o Streak correto!
         uiDashboard.renderDashboard();
-        uiDashboard.checkStreak();
         
         // Feedback visual discreto
         if(window.showToast) window.showToast("Sincronizado com sucesso!", "success");
@@ -142,9 +165,9 @@ window.onload = function() {
     setTimeout(() => {
         // Tenta buscar da nuvem se estiver logado
         if (window.loadVersesFromFirestore) {
-            window.loadVersesFromFirestore((cloudVerses) => {
+            window.loadVersesFromFirestore((payload) => {
                 // CHAMA A PONTE PARA ATUALIZAR A TELA
-                window.handleCloudData(cloudVerses);
+                window.handleCloudData(payload);
             });
         }
 
