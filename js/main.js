@@ -1,10 +1,10 @@
 // js/main.js
 
 // 1. Importações de Módulos (Core & Utils)
-// NOTA: Adicionamos setAppData para atualizar o estado global ao receber dados da nuvem
 import { runSanityCheck, appData, setAppData } from './core.js';
 import { loadFromStorage, saveToStorage } from './storage.js';
-import { initChangelog } from './changelog.js'; 
+// ATUALIZADO: Importando systemChangelog para versionamento automático
+import { initChangelog, systemChangelog } from './changelog.js'; 
 import { getLocalDateISO, showToast } from './utils.js';
 
 // 2. Importações de Funcionalidades
@@ -61,8 +61,10 @@ window.closeAuthModal = window.closeAuthModal || function(){ document.getElement
 
 // --- 4. PONTE DE SINCRONIZAÇÃO (CLOUD -> UI) ---
 // Esta função é chamada pelo firebase.js ou pelo onload quando dados chegam
+// ATUALIZADO v1.2.1: Agora recebe payload completo (verses, settings, stats)
 window.handleCloudData = function(payload) {
-    // payload agora contém { verses, settings, stats } (ou array se for versão antiga)
+    // payload agora contém { verses, settings, stats }
+    // Se o firebase antigo chamar apenas com array, tratamos isso (compatibilidade)
     const cloudVerses = Array.isArray(payload) ? payload : payload.verses;
     const cloudSettings = payload.settings;
     const cloudStats = payload.stats;
@@ -77,14 +79,16 @@ window.handleCloudData = function(payload) {
         };
 
         // 2. Se vieram configurações da nuvem, aplica (prioridade nuvem)
+        // Isso corrige o bug do "Perfil Equilibrado" resetar
         if (cloudSettings) {
             newState.settings = cloudSettings;
         }
 
-        // 3. Se vieram stats da nuvem, aplica (prioridade nuvem se tiver mais dados)
+        // 3. Se vieram stats da nuvem, aplica
+        // Isso corrige o bug do "Streak Zerado"
         if (cloudStats) {
-            // Se não houver stats local, ou se a nuvem tiver um streak maior/igual, usa a nuvem
-            if (!appData.stats || (cloudStats.streak >= (appData.stats.streak || 0))) {
+            // Lógica de segurança simples: confia na nuvem se local for zero ou menor
+            if (!appData.stats || cloudStats.streak > (appData.stats.streak || 0)) {
                 newState.stats = cloudStats;
             }
         }
@@ -92,13 +96,14 @@ window.handleCloudData = function(payload) {
         // 4. Atualiza Estado Global na Memória
         setAppData(newState);
         
-        // 5. Persiste no LocalStorage e Renderiza
+        // 5. Persiste no LocalStorage (para funcionar offline na próxima vez)
         saveToStorage();
         
+        // 6. Força a renderização completa da UI
         uiDashboard.updateTable();
         uiDashboard.updateRadar();
-        uiDashboard.updatePacingUI(); // Agora reflete o Perfil correto!
-        uiDashboard.checkStreak();   // Agora reflete o Streak correto!
+        uiDashboard.updatePacingUI(); // Agora refletirá o Perfil correto
+        uiDashboard.checkStreak();   // Agora refletirá o Streak correto
         uiDashboard.renderDashboard();
         
         // Feedback visual discreto
@@ -111,7 +116,9 @@ window.handleCloudData = function(payload) {
 // --- 5. INICIALIZAÇÃO DO SISTEMA ---
 
 window.onload = function() {
-    console.log('[System] Inicializando NeuroBible v1.2.0 Modular...');
+    // ATUALIZADO v1.2.1: Versionamento automático via Changelog
+    const currentVersion = systemChangelog.length > 0 ? systemChangelog[0].version : 'Dev';
+    console.log(`[System] Inicializando NeuroBible v${currentVersion} Modular...`);
 
     // A. Service Worker (PWA)
     if ('serviceWorker' in navigator) {
@@ -165,9 +172,9 @@ window.onload = function() {
     setTimeout(() => {
         // Tenta buscar da nuvem se estiver logado
         if (window.loadVersesFromFirestore) {
-            window.loadVersesFromFirestore((payload) => {
-                // CHAMA A PONTE PARA ATUALIZAR A TELA
-                window.handleCloudData(payload);
+            window.loadVersesFromFirestore((cloudPayload) => {
+                // CHAMA A PONTE PARA ATUALIZAR A TELA (Payload Completo)
+                window.handleCloudData(cloudPayload);
             });
         }
 
