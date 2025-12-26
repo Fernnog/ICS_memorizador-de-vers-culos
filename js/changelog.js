@@ -1,6 +1,7 @@
 // js/changelog.js
 
-const systemChangelog = [
+// NOTA: Adicionado 'export' para permitir leitura no main.js (DRY)
+export const systemChangelog = [
     {
         version: "1.2.1",
         date: "2025-12-26",
