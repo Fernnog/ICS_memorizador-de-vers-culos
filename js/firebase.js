@@ -1,4 +1,4 @@
-// js/firebase.js - Conexão Nuvem e Autenticação (v1.2.0 - Sync Fix)
+// js/firebase.js - Conexão Nuvem e Autenticação (v1.2.1 - Persistence Fix)
 
 // 1. CONFIGURAÇÃO DO FIREBASE
 const firebaseConfig = {
@@ -54,6 +54,9 @@ window.processSyncQueue = function() {
                 window.saveVerseToFirestore(item.data, true); // true = isRetry (sem toast)
             } else if (item.collection === 'settings') {
                 window.saveSettingsToFirestore(item.data, true);
+            } else if (item.collection === 'stats') {
+                // NOVA LÓGICA: Reprocessa stats pendentes
+                window.saveStatsToFirestore(item.data, true);
             }
         } else if (item.action === 'delete') {
             window.handleCloudDeletion(item.docId, true);
@@ -204,32 +207,46 @@ window.saveSettingsToFirestore = function(settings, isRetry = false) {
         });
 };
 
-// Carregar Dados
+// NOVA FUNÇÃO: Salvar Stats/Streak (Com Retry/Queue)
+window.saveStatsToFirestore = function(stats, isRetry = false) {
+    if (!currentUser || !db) return;
+
+    db.collection('users').doc(currentUser.uid)
+        .set({ stats: stats }, { merge: true })
+        .then(() => console.log("Stats sincronizados."))
+        .catch((err) => {
+            console.warn("Falha no stats, adicionando à fila:", err);
+            if (!isRetry) addToSyncQueue('set', 'stats', null, stats);
+        });
+};
+
+// Carregar Dados (Versículos + Configurações + Stats)
 window.loadVersesFromFirestore = function(callback) {
     if (!currentUser || !db) return;
 
-    // Carrega Configurações
-    db.collection('users').doc(currentUser.uid).get()
-        .then((doc) => {
-            if (doc.exists && doc.data().settings) {
-                if(window.appData) {
-                    window.appData.settings = doc.data().settings;
-                    if(window.updatePacingUI) window.updatePacingUI();
-                }
-            }
-        });
+    // 1. Busca Dados do Usuário (Settings + Stats)
+    const userDocPromise = db.collection('users').doc(currentUser.uid).get();
+    
+    // 2. Busca Versículos (Subcoleção)
+    const versesCollectionPromise = db.collection('users').doc(currentUser.uid).collection('verses').get();
 
-    // Carrega Versículos
-    db.collection('users').doc(currentUser.uid).collection('verses').get()
-        .then((querySnapshot) => {
+    Promise.all([userDocPromise, versesCollectionPromise])
+        .then(([userDoc, versesSnapshot]) => {
+            const userData = userDoc.exists ? userDoc.data() : {};
+            
             const cloudVerses = [];
-            querySnapshot.forEach((doc) => {
+            versesSnapshot.forEach((doc) => {
                 cloudVerses.push(doc.data());
             });
-            // Sempre chama o callback, mesmo vazio, para atualizar estado
-            callback(cloudVerses);
+
+            // Retorna um objeto completo para o main.js processar
+            callback({
+                verses: cloudVerses,
+                settings: userData.settings || null,
+                stats: userData.stats || null
+            });
         })
-        .catch((error) => console.error("Erro ao baixar dados:", error));
+        .catch((error) => console.error("Erro ao baixar dados completos:", error));
 };
 
 // Deletar da Nuvem (Com Retry/Queue)
